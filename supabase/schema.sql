@@ -26,6 +26,11 @@ create index if not exists lots_category_idx on public.lots (category);
 create index if not exists lots_state_idx    on public.lots (state);
 create index if not exists lots_source_idx   on public.lots (source);
 
+-- Table permissions (newer Supabase projects don't grant these automatically).
+grant usage on schema public to anon, authenticated, service_role;
+grant select on public.lots to anon, authenticated;
+grant all on public.lots to service_role;
+
 -- The website can only READ. Collectors write with the service-role key, which bypasses this.
 alter table public.lots enable row level security;
 
