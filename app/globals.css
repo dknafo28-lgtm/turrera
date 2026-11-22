@@ -83,16 +83,16 @@ img { display: block; }
 .toolbar { margin-bottom: 10px; }
 .filters-toggle { position: absolute; opacity: 0; pointer-events: none; }
 .filters-button { display: none; }
-.filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px 10px; align-items: flex-end; }
 .field { display: flex; flex-direction: column; gap: 3px; font-size: 0.85rem; color: var(--steel); }
 .field select, .field input[type="number"] {
   font: inherit; font-size: 0.95rem; color: var(--ink); background: var(--paper);
   border: 1px solid var(--line); border-radius: 5px; padding: 8px 10px; min-height: 40px;
 }
-.field select { min-width: 118px; }
+.field select { min-width: 112px; }
 .field-price > div { display: flex; gap: 6px; }
 .field-price input { width: 86px; }
-.field-check { flex-direction: row; align-items: center; gap: 8px; min-height: 40px; color: var(--ink); font-size: 0.95rem; }
+.field-check { flex-direction: row; align-items: center; gap: 8px; min-height: 40px; color: var(--ink); font-size: 0.9rem; }
 .field-check input { width: 18px; height: 18px; accent-color: var(--go); }
 .apply {
   font: inherit; font-weight: 600; min-height: 40px; padding: 0 16px; border-radius: 5px; cursor: pointer;

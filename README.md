@@ -40,6 +40,17 @@ npm run collect:gsa          # run the collector once
 npm test                     # collector tests
 ```
 
+## What runs every 4 hours
+
+`.github/workflows/collect.yml`: GSA Auctions and Public Surplus collectors, Public Surplus item descriptions,
+eBay vehicle values (needs `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET`), and Claude condition summaries plus market value
+and ease-of-sale estimates (needs `ANTHROPIC_API_KEY`).
+
+Database changes go in `supabase/schema.sql` (safe to re-run). Pushing a change to that file runs
+`.github/workflows/migrate.yml`, which applies it using the `SUPABASE_DB_URL` secret.
+
+Not collected: CWS Marketing blocks automated access (CAPTCHA on its site, 403 on its bidding site).
+
 ## Adding a new auction source
 
 Create `collectors/<source>.mjs` that maps listings to the `lots` columns (see `toLot` in `gsa.mjs`), saves them with `upsertLots`, and add a step to `.github/workflows/collect.yml`.
