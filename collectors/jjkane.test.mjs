@@ -12,7 +12,7 @@ test("government sellers are kept", () => {
 
 test("companies are dropped", () => {
   for (const n of ["COMMONWEALTH EDISON", "Duke Energy", "AT&T - ELEMENT FLEET CORPORTATION", "KARNES CITY ELECTRIC COOPERATIVE, INC",
-    "ASPLUNDH TREE EXPERT LLC", "Ervin Cable Construction, LLC", "PODS", "HOMEDEPOTRENTALS", ""]) {
+    "ASPLUNDH TREE EXPERT LLC", "Ervin Cable Construction, LLC", "PODS", "HOMEDEPOTRENTALS", "TOWN AND COUNTY TREE SERVICE", ""]) {
     assert.equal(isGovernmentSeller(n), false, n);
   }
 });

@@ -30,7 +30,7 @@ const GOV = [
   /^(florida|california|texas|georgia|state) state\b/i,
   /\bcity of\b|\btown of\b/i,
 ];
-const NOT_GOV = /\b(inc|llc|l\.l\.c|corp|corporation|company|co\.|cooperative|coop|edison|leasing|capital|rentals?|services?\s+(inc|llc)|lp|ltd)\b/i;
+const NOT_GOV = /\b(tree service|inc|llc|l\.l\.c|corp|corporation|company|co\.|cooperative|coop|edison|leasing|capital|rentals?|services?\s+(inc|llc)|lp|ltd)\b/i;
 
 export function isGovernmentSeller(name) {
   const n = (name ?? "").trim();
