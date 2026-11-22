@@ -110,26 +110,20 @@ export async function run() {
       await new Promise((r) => setTimeout(r, 250));
     }
     const c = cache.get(key);
-    updates.push({
-      id: lot.id,
-      source: lot.source,
-      year: v.year,
-      make: v.make,
-      model: v.model,
-      est_value: c.median,
-      est_low: c.low,
-      est_high: c.high,
-      comps_count: c.count,
-      value_source: "ebay",
-      value_updated: new Date().toISOString(),
-    });
+    const row = { id: lot.id, source: lot.source, year: v.year, make: v.make, model: v.model, value_updated: new Date().toISOString() };
+    // Only replace the value when eBay has enough matching listings; otherwise keep any AI estimate.
+    if (c.median !== null) Object.assign(row, { est_value: c.median, est_low: c.low, est_high: c.high, comps_count: c.count, value_source: "ebay" });
+    updates.push(row);
   }
 
-  for (let i = 0; i < updates.length; i += 500) {
-    const { error: upErr } = await supabase.from("lots").upsert(updates.slice(i, i + 500), { onConflict: "id" });
-    if (upErr) throw new Error(`Supabase update failed: ${upErr.message}`);
+  // PostgREST needs every row in one request to have the same columns, so save the two shapes separately.
+  for (const group of [updates.filter((u) => u.value_source === "ebay"), updates.filter((u) => u.value_source !== "ebay")]) {
+    for (let i = 0; i < group.length; i += 500) {
+      const { error: upErr } = await supabase.from("lots").upsert(group.slice(i, i + 500), { onConflict: "id" });
+      if (upErr) throw new Error(`Supabase update failed: ${upErr.message}`);
+    }
   }
-  const valued = updates.filter((u) => u.est_value !== null).length;
+  const valued = updates.filter((u) => u.value_source === "ebay").length;
   console.log(`Vehicle values: ${updates.length} vehicles checked (${cache.size} eBay searches), ${valued} with an estimate, ${skipped} titles not recognized.`);
   return valued;
 }

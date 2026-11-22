@@ -37,7 +37,9 @@ function groupByEnding(lots: Lot[]) {
 
 const SOURCES: Record<string, string> = { gsa: "GSA Auctions", publicsurplus: "Public Surplus" };
 
-type Params = { q?: string; category?: string; state?: string; max?: string; sort?: string; ending?: string; source?: string };
+type Params = { q?: string; category?: string; state?: string; max?: string; sort?: string; ending?: string; source?: string; ease?: string };
+
+const EASE_LABEL: Record<string, string> = { easy: "Easy to sell", moderate: "Moderate to sell", hard: "Hard to sell" };
 
 function money(n: number | null) {
   if (n === null || n === undefined) return "No bids yet";
@@ -58,10 +60,16 @@ async function loadLots(p: Params): Promise<{ lots: Lot[]; error?: string }> {
   if (!supabase) return { lots: [], error: "Database not connected yet — add the Supabase keys in Vercel." };
 
   const base = "id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen";
-  const first = await runQuery(supabase, p, `${base},est_value,est_low,est_high,comps_count,spread,condition`);
-  // Before the value columns are added in Supabase, fall back to the basic columns.
-  if (first.error && /does not exist|spread/i.test(first.error)) return runQuery(supabase, { ...p, sort: p.sort === "spread" ? "ending" : p.sort }, base);
-  return first;
+  const values = "est_value,est_low,est_high,comps_count,spread,condition";
+  // Newest columns first; if the database hasn't been updated yet, fall back to older column sets.
+  const attempts = [`${base},${values},sell_ease,sell_note,value_source`, `${base},${values}`, base];
+  let last: { lots: Lot[]; error?: string } = { lots: [] };
+  for (const [i, columns] of attempts.entries()) {
+    const params = i === attempts.length - 1 && p.sort === "spread" ? { ...p, sort: "ending" } : p;
+    last = await runQuery(supabase, i === 0 ? params : { ...params, ease: undefined }, columns);
+    if (!last.error || !/does not exist|spread|sell_ease/i.test(last.error)) return last;
+  }
+  return last;
 }
 
 async function runQuery(supabase: NonNullable<ReturnType<typeof getReadClient>>, p: Params, columns: string): Promise<{ lots: Lot[]; error?: string }> {
@@ -77,6 +85,8 @@ async function runQuery(supabase: NonNullable<ReturnType<typeof getReadClient>>,
   if (p.category && CATEGORIES.includes(p.category)) query = query.eq("category", p.category);
   if (p.state && STATES.includes(p.state)) query = query.eq("state", p.state);
   if (p.source && p.source in SOURCES) query = query.eq("source", p.source);
+  if (p.ease === "easy") query = query.eq("sell_ease", "easy");
+  if (p.ease === "moderate") query = query.in("sell_ease", ["easy", "moderate"]);
   const max = Number(p.max);
   if (p.max && Number.isFinite(max) && max > 0) query = query.lte("current_bid", max);
   if (p.ending === "48h") query = query.lte("end_time", new Date(Date.now() + 48 * 3_600_000).toISOString());
@@ -110,6 +120,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           <option value="">All sites</option>
           {Object.entries(SOURCES).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
         </select>
+        <select name="ease" defaultValue={p.ease ?? ""}>
+          <option value="">Any resale ease</option>
+          <option value="easy">Easy to sell</option>
+          <option value="moderate">Easy or moderate</option>
+        </select>
         <input type="number" name="max" min="0" step="100" placeholder="Max price $" defaultValue={p.max ?? ""} />
         <select name="ending" defaultValue={p.ending ?? ""}>
           <option value="">Any end date</option>
@@ -139,9 +154,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
                 <p className="price">{money(lot.current_bid)}</p>
                 {lot.est_value ? (
                   <p className="value">
-                    Est. resale {money(lot.est_value)}
-                    <span className="range"> ({money(lot.est_low)}–{money(lot.est_high)}, {lot.comps_count} eBay listings)</span>
+                    Market value {money(lot.est_low)}–{money(lot.est_high)}
+                    <span className="range"> {lot.value_source === "ebay" ? `(${lot.comps_count} eBay listings)` : "(AI estimate)"}</span>
                     {lot.spread !== null ? <span className={lot.spread > 0 ? "spread up" : "spread down"}>{lot.spread > 0 ? "+" : ""}{money(lot.spread)} vs. current bid</span> : null}
+                  </p>
+                ) : null}
+                {lot.sell_ease ? (
+                  <p className="ease-line">
+                    <span className={`ease ease-${lot.sell_ease}`}>{EASE_LABEL[lot.sell_ease] ?? lot.sell_ease}</span>
+                    {lot.sell_note ? <span className="ease-note"> {lot.sell_note}</span> : null}
                   </p>
                 ) : null}
                 <p className="meta">{[lot.city, lot.state].filter(Boolean).join(", ") || "Location not listed"}</p>

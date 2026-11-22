@@ -55,3 +55,8 @@ create index if not exists lots_spread_idx on public.lots (spread);
 alter table public.lots add column if not exists condition text;
 alter table public.lots add column if not exists condition_updated timestamptz;
 alter table public.lots add column if not exists details_fetched timestamptz;
+
+-- Market value + ease of sale (added Nov 2026). Safe to run more than once.
+alter table public.lots add column if not exists sell_ease text;
+alter table public.lots add column if not exists sell_note text;
+alter table public.lots add column if not exists appraisal_updated timestamptz;

@@ -22,6 +22,9 @@ export type Lot = {
   comps_count: number | null;
   spread: number | null;
   condition: string | null;
+  sell_ease: string | null;
+  sell_note: string | null;
+  value_source: string | null;
 };
 
 let client: SupabaseClient | null = null;

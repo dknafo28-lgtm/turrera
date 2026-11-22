@@ -32,7 +32,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
 
 .filters {
   display: grid;
-  grid-template-columns: 2fr repeat(6, 1fr) auto;
+  grid-template-columns: 2fr repeat(7, 1fr) auto;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -80,6 +80,15 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
 .condition { font-size: 0.82rem; color: #3b4250; margin: 0 0 6px; line-height: 1.35;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
+
+.ease-line { margin: 4px 0; font-size: 0.8rem; line-height: 1.35; }
+.ease { display: inline-block; padding: 1px 8px; border-radius: 999px; font-weight: 600; font-size: 0.75rem; }
+.ease-easy { background: #e3f4ec; color: #0b6e4f; }
+.ease-moderate { background: #fff4dc; color: #8a5a00; }
+.ease-hard { background: #fde8e6; color: #b42318; }
+.ease-note { color: var(--muted); }
+@media (min-width: 901px) and (max-width: 1100px) { .filters { grid-template-columns: repeat(4, 1fr); } .filters input[type="search"] { grid-column: 1 / -1; } }
+
 /* Phones: compact rows so 4-5 lots fit on screen while scrolling */
 @media (max-width: 640px) {
   main { padding: 12px 10px 32px; }
@@ -96,5 +105,6 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
   .value { font-size: 0.76rem; margin: 2px 0; }
   .value .range { display: none; }
   .tag { display: none; }
+  .ease-note { display: none; }
   .group-title { margin: 16px 0 8px; font-size: 0.95rem; }
 }
