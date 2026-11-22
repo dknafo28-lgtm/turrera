@@ -1,49 +1,62 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource/barlow/400.css";
-import "@fontsource/barlow/500.css";
-import "@fontsource/barlow/600.css";
-import "@fontsource/barlow-condensed/600.css";
-import "@fontsource/barlow-condensed/700.css";
+import "@fontsource/public-sans/400.css";
+import "@fontsource/public-sans/500.css";
+import "@fontsource/public-sans/600.css";
+import "@fontsource/public-sans/700.css";
+import "@fontsource/saira-semi-condensed/700.css";
+import "@fontsource/saira-semi-condensed/800.css";
 import "./globals.css";
+import Logo from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Turrera: government surplus auctions in one place",
-  description: "Search GSA Auctions and Public Surplus lots: trucks, boats, equipment and more, with condition notes and resale estimates.",
+  description: "Search government surplus lots from GSA Auctions, Public Surplus, Municibid and JJ Kane, with condition notes and resale estimates.",
+  icons: { icon: "/favicon.svg" },
 };
 
-export const viewport: Viewport = { themeColor: "#14213d" };
+export const viewport: Viewport = { themeColor: "#162e51" };
+
+const SCRIPT = `document.addEventListener("error", function (e) {
+  var img = e.target;
+  if (!img || img.tagName !== "IMG" || !img.parentElement) return;
+  var p = img.parentElement;
+  if (p.classList.contains("card-media") || p.classList.contains("gallery-item") || p.classList.contains("cat-tile-photo") || p.classList.contains("gallery-thumb")) p.classList.add("photo-missing");
+}, true);
+document.querySelectorAll(".card-media img, .cat-tile-photo img").forEach(function (img) {
+  if (img.complete && img.naturalWidth === 0) img.parentElement.classList.add("photo-missing");
+});
+document.addEventListener("change", function (e) {
+  var el = e.target;
+  if (el && el.hasAttribute && el.hasAttribute("data-autosubmit") && el.form) el.form.submit();
+});
+document.addEventListener("click", function (e) {
+  var a = e.target && e.target.closest ? e.target.closest(".gallery-thumb") : null;
+  if (!a) return;
+  var target = document.getElementById(a.getAttribute("href").slice(1));
+  if (!target) return;
+  e.preventDefault();
+  target.parentElement.scrollTo({ left: target.offsetLeft - target.parentElement.offsetLeft, behavior: "smooth" });
+  document.querySelectorAll(".gallery-thumb").forEach(function (t) { t.removeAttribute("aria-current"); });
+  a.setAttribute("aria-current", "true");
+});
+document.addEventListener("keydown", function (e) {
+  var t = document.getElementById("filters-open");
+  if (e.key === "Escape" && t && t.checked) t.checked = false;
+});`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        {children}
+        <a href="#content" className="skip">Skip to results</a>
+        <div id="content">{children}</div>
         <footer className="site-footer">
-          <p>Listings link to the original auction. Turrera isn&apos;t affiliated with the selling agencies. Market values and resale notes are estimates; check the listing and real sales before you bid.</p>
+          <div className="site-footer-inner">
+            <Logo tone="dark" className="footer-logo" />
+            <p>Listings come from GSA Auctions, Public Surplus, Municibid, JJ Kane government sellers and your auction alerts. Turrera isn&apos;t affiliated with the selling agencies. Values and resale notes are estimates, so check the listing and recent sales before you bid.</p>
+          </div>
         </footer>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `document.addEventListener("error", function (e) {
-  var img = e.target;
-  if (img && img.tagName === "IMG" && img.parentElement && (img.parentElement.classList.contains("lot-photo") || img.parentElement.classList.contains("gallery-item"))) img.parentElement.classList.add("photo-missing");
-}, true);
-document.querySelectorAll(".lot-photo img").forEach(function (img) {
-  if (img.complete && img.naturalWidth === 0) img.parentElement.classList.add("photo-missing");
-});
-document.addEventListener("click", function (e) {
-  var a = e.target && e.target.closest ? e.target.closest("a[data-back]") : null;
-  if (a && document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1) { e.preventDefault(); history.back(); }
-});
-document.addEventListener("change", function (e) {
-  var el = e.target;
-  if (!el || !el.name || !el.form || !el.form.classList.contains("toolbar")) return;
-  var drawer = document.getElementById("filters-toggle");
-  if (drawer && drawer.checked) return; // on phones, wait for the Apply button
-
-  if (el.tagName === "SELECT" || el.type === "checkbox") el.form.submit();
-});`,
-          }}
-        />
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT }} />
       </body>
     </html>
   );
