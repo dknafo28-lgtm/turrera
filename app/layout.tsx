@@ -7,6 +7,7 @@ import "@fontsource/saira-semi-condensed/700.css";
 import "@fontsource/saira-semi-condensed/800.css";
 import "./globals.css";
 import Logo from "@/components/Logo";
+import NewsletterForm from "@/components/NewsletterForm";
 
 export const metadata: Metadata = {
   title: "Turrera: government surplus auctions in one place",
@@ -52,8 +53,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div id="content">{children}</div>
         <footer className="site-footer">
           <div className="site-footer-inner">
-            <Logo tone="dark" className="footer-logo" />
+            <div className="footer-col">
+              <Logo tone="dark" className="footer-logo" />
+              <nav className="footer-links" aria-label="Footer">
+                <a href="/search">Search lots</a>
+                <a href="/buy-for-me">We buy it for you</a>
+                <a href="/sell">Sell your fleet</a>
+                <a href="/watchlist">Watchlist</a>
+              </nav>
+            </div>
+            <div className="footer-col">
+              <h2>Weekly deals list</h2>
+              <NewsletterForm source="footer" tone="dark" />
             <p>Listings come from GSA Auctions, Public Surplus, Municibid, JJ Kane government sellers and your auction alerts. Turrera isn&apos;t affiliated with the selling agencies. Values and resale notes are estimates, so check the listing and recent sales before you bid.</p>
+            </div>
           </div>
         </footer>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT }} />

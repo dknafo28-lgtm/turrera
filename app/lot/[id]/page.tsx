@@ -7,6 +7,7 @@ import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
 import Countdown from "@/components/Countdown";
 import WatchButton from "@/components/WatchButton";
+import BuyForm from "@/components/BuyForm";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +40,9 @@ function fmtDate(s: string | null | undefined) {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
 }
 
-export default async function LotPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function LotPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ buy?: string }> }) {
   const lot = await getLot((await params).id);
+  const sp = await searchParams;
   if (!lot) notFound();
   const similar = await similarLots(lot);
 
@@ -134,6 +136,10 @@ export default async function LotPage({ params }: { params: Promise<{ id: string
                 <div className="lot-description">{lot.description}</div>
               </section>
             ) : null}
+
+            {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
+              <BuyForm lotId={lot.id} site={site} missing={sp.buy === "missing"} suggested={lot.est_low ?? null} />
+            ) : null}
           </div>
 
           <aside className="bidbox" aria-label="Bidding">
@@ -158,6 +164,7 @@ export default async function LotPage({ params }: { params: Promise<{ id: string
             ) : null}
             <div className="bidbox-actions">
               <a className="btn btn-primary btn-block" href={bidLink} target="_blank" rel="noopener noreferrer">View and bid on {site}</a>
+              <a className="btn btn-outline btn-block" href="#buy-for-me">Have us buy it for you</a>
               <WatchButton id={lot.id} />
             </div>
             <p className="fine">
@@ -179,7 +186,7 @@ export default async function LotPage({ params }: { params: Promise<{ id: string
 
         <div className="mobile-bidbar">
           <div><span>Current bid</span><strong>{bid}</strong></div>
-          <a className="btn btn-primary" href={bidLink} target="_blank" rel="noopener noreferrer">Bid on {site}</a>
+          <div className="mobile-bidbar-actions"><a className="btn btn-outline" href="#buy-for-me">Buy for me</a><a className="btn btn-primary" href={bidLink} target="_blank" rel="noopener noreferrer">Bid</a></div>
         </div>
       </main>
     </>

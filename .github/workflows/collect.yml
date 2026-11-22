@@ -82,3 +82,15 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Search alert emails
+        if: always()
+        run: node collectors/search-alerts.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ALERTS_IMAP_USER: ${{ secrets.ALERTS_IMAP_USER }}
+          ALERTS_IMAP_PASSWORD: ${{ secrets.ALERTS_IMAP_PASSWORD }}
+          MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
+          SITE_PUBLIC: ${{ vars.SITE_PUBLIC }}

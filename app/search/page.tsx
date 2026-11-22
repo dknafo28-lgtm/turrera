@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
+import AlertForm from "@/components/AlertForm";
 import {
   CATEGORIES, EASE, ENDING, PAGE_SIZE, SORTS, SOURCE_SHORT, STATES,
   categoryCounts, loadLots, type Params,
@@ -194,6 +195,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 <a className="btn btn-outline" href="/search">See all open lots</a>
               </div>
             )}
+
+            <AlertForm p={p} label={p.q ? `${p.q}${cat ? ` in ${cat.label.toLowerCase()}` : ""}` : heading} />
 
             {totalPages > 1 ? (
               <nav className="pager" aria-label="Pages">
