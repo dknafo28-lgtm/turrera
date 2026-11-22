@@ -29,6 +29,16 @@ document.addEventListener("change", function (e) {
   var el = e.target;
   if (el && el.hasAttribute && el.hasAttribute("data-autosubmit") && el.form) el.form.submit();
 });
+document.addEventListener("click", function (e) {
+  var a = e.target && e.target.closest ? e.target.closest(".gallery-thumb") : null;
+  if (!a) return;
+  var target = document.getElementById(a.getAttribute("href").slice(1));
+  if (!target) return;
+  e.preventDefault();
+  target.parentElement.scrollTo({ left: target.offsetLeft - target.parentElement.offsetLeft, behavior: "smooth" });
+  document.querySelectorAll(".gallery-thumb").forEach(function (t) { t.removeAttribute("aria-current"); });
+  a.setAttribute("aria-current", "true");
+});
 document.addEventListener("keydown", function (e) {
   var t = document.getElementById("filters-open");
   if (e.key === "Escape" && t && t.checked) t.checked = false;

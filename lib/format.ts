@@ -37,8 +37,10 @@ export function closesAt(end: string | null | undefined, dateOnly = false) {
     : d.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" });
 }
 
-export function titleCase(s: string | null | undefined) {
-  if (!s) return "";
+export function titleCase(raw: string | null | undefined) {
+  if (!raw) return "";
+  // Drop auction-house prefixes like "LOT 176 " or "Lot 47RL " ahead of the real title.
+  const s = raw.replace(/^lot(?:\s*#\s*|\s+)(?=[\w-]{0,7}\d)[\w-]{1,8}[\s:.-]+(?=\S)/i, "").replace(/^(\d{4})-\s*/, "$1 ") || raw;
   // Leave mixed-case titles alone; soften ALL-CAPS ones so cards read evenly.
   if (s !== s.toUpperCase()) return s;
   return s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase())
