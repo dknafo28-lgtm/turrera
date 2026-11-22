@@ -1,0 +1,75 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [features]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx next build
+      - name: Test forms and render pages against real data
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          ADMIN_PASSWORD: previewcheck
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          B=http://localhost:3123
+          LOT=$(curl -s "$B/search?category=trucks&source=publicsurplus" | grep -o 'href="/lot/[^"]*"' | head -1 | cut -d'"' -f2)
+          LOTID=$(node -e "console.log(decodeURIComponent(process.argv[1].replace('/lot/','')))" "$LOT")
+          echo "LOT=$LOT"
+          echo "--- forms"
+          curl -s -o /dev/null -w "subscribe -> %{http_code} %{redirect_url}\n" -X POST -F email=preview-check@example.com -F source=ci "$B/api/subscribe"
+          curl -s -o /dev/null -w "alert -> %{http_code} %{redirect_url}\n" -X POST -F email=preview-check@example.com -F category=boats -F state=FL -F label="Boats in FL" "$B/api/alert"
+          curl -s -o /dev/null -w "sell -> %{http_code} %{redirect_url}\n" -X POST -F company="CI Test Landscaping" -F name="Preview Check" -F email=preview-check@example.com -F fleet_size="10–49" -F items="2016 F-250" -F call_consent=yes "$B/api/sell"
+          curl -s -o /dev/null -w "buy -> %{http_code} %{redirect_url}\n" -X POST -F lot_id="$LOTID" -F name="Preview Check" -F email=preview-check@example.com -F max_bid="5,000" -F destination="Nassau, Bahamas" -F terms=yes "$B/api/buy"
+          curl -s -o /dev/null -w "buy missing terms -> %{http_code} %{redirect_url}\n" -X POST -F lot_id="$LOTID" -F name=x -F email=x@example.com -F max_bid=10 "$B/api/buy"
+          curl -s -o /dev/null -w "admin no password -> %{http_code}\n" "$B/admin"
+          curl -s -u x:previewcheck "$B/admin" -o /tmp/admin.html -w "admin with password -> %{http_code}\n"
+          grep -o "CI Test Landscaping\|Nassau, Bahamas\|Newsletter subscribers" /tmp/admin.html | sort | uniq -c
+          for u in /buy-for-me /sell /thanks?k=buy /unsubscribe?t=deadbeefdeadbeefdeadbeef; do curl -s -o /dev/null -w "$u -> %{http_code}\n" "$B$u"; done
+          mkdir -p shots
+          CHROME=$(which google-chrome || which chromium)
+          shot() { $CHROME --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=8000 --window-size=$2 --screenshot=shots/$1.png "$3" 2>/dev/null; }
+          shot home 1400,3200 "$B/"
+          shot lot 1400,2600 "$B$LOT"
+          shot lot-mobile 390,3400 "$B$LOT"
+          shot sell 1400,1500 "$B/sell"
+          shot buy 1400,1500 "$B/buy-for-me"
+          shot search 1400,2400 "$B/search?category=boats"
+          shot admin 1400,1500 "http://x:previewcheck@localhost:3123/admin"
+          echo "--- newsletter draft (no send)"
+          node collectors/newsletter-draft.mjs || true
+          shot admin-news 1400,2600 "http://x:previewcheck@localhost:3123/admin#newsletter"
+          echo "--- cleanup test rows"
+          node -e '
+            import("@supabase/supabase-js").then(async ({ createClient }) => {
+              const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+              for (const t of ["subscribers","saved_searches","sell_leads","buy_requests"]) {
+                const { count, error } = await db.from(t).delete({ count: "exact" }).eq("email", "preview-check@example.com");
+                console.log(t, error ? error.message : `removed ${count}`);
+              }
+              const r = await db.from("newsletters").update({ status: "discarded" }).eq("status", "draft");
+              console.log("draft newsletter discarded", r.error?.message ?? "ok");
+            });'
+          grep -i "error" /tmp/next.log | grep -v DEP0 | head -5 || true
+      - name: Save screenshots to the preview-shots branch
+        if: always()
+        run: |
+          cp -r shots /tmp/shots || true
+          git config user.name "turrera-bot"; git config user.email "bot@turrera.com"
+          git checkout --orphan preview-shots
+          git rm -rq --cached . && rm -rf ./* .github .gitignore
+          cp /tmp/shots/*.png . && git add *.png && git commit -qm "Screenshots" && git push -f origin preview-shots
