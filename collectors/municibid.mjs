@@ -61,6 +61,11 @@ export function toLot(r, now = Date.now()) {
   };
 }
 
+// The connector takes UTC times written without a zone, like "2026-11-23T20:25:46".
+export function utcNoZone(d) {
+  return d.toISOString().slice(0, 19);
+}
+
 // Walks through every active auction, soonest-closing first, 50 at a time.
 async function fetchAll(client) {
   const seen = new Map();
@@ -78,10 +83,10 @@ async function fetchAll(client) {
     }
     if (results.length < PAGE) break;
     const lastRaw = results[results.length - 1]?.closing_at;
-    const last = lastRaw ? new Date(lastRaw).toISOString() : null; // the connector wants UTC ISO times
+    const last = lastRaw ? utcNoZone(new Date(lastRaw)) : null;
     if (!last || last === after || added === 0) {
       // Many auctions closing at the same minute: step one second past it so we keep moving.
-      const next = last ? new Date(new Date(last).getTime() + 1000).toISOString() : null;
+      const next = last ? utcNoZone(new Date(new Date(`${last}Z`).getTime() + 1000)) : null;
       if (!next || next === after) break;
       after = next;
     } else {

@@ -45,3 +45,8 @@ test("plural Municibid categories still map", () => {
   assert.equal(toLot({ ...sample, title: "Unit 7", category: "Backhoes" }).category, "equipment");
   assert.equal(toLot({ ...sample, title: "Unit 7", category: "Pickup Trucks" }).category, "trucks");
 });
+
+test("utcNoZone formats times the way the connector accepts", async () => {
+  const { utcNoZone } = await import("./municibid.mjs");
+  assert.equal(utcNoZone(new Date("2026-11-23T15:25:46-05:00")), "2026-11-23T20:25:46");
+});
