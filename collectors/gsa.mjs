@@ -86,7 +86,8 @@ export function toLot(record) {
     source: "gsa",
     title,
     description,
-    category: categorize(title, description ?? ""),
+    // Title only: descriptions often mention "truck" for pickup/removal, which misfiles scrap and materials.
+    category: categorize(title),
     current_bid: toNumber(f("highBidAmount", "currentBid", "highBid")),
     start_time: toDate(f("aucStartDt")),
     end_time: toDate(f("aucEndDt")),
