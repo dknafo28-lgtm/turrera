@@ -13,7 +13,27 @@ const SORTS: Record<string, { label: string; column: string; ascending: boolean 
   newest: { label: "Newest listed", column: "first_seen", ascending: false },
   price_low: { label: "Price: low to high", column: "current_bid", ascending: true },
   price_high: { label: "Price: high to low", column: "current_bid", ascending: false },
+  spread: { label: "Biggest potential profit", column: "spread", ascending: false },
 };
+
+const GROUPS = [
+  { label: "Ending in the next 6 hours", until: 6 },
+  { label: "Ending today", until: 24 },
+  { label: "Ending in the next 3 days", until: 72 },
+  { label: "Ending this week", until: 168 },
+  { label: "Ending later", until: Infinity },
+];
+
+function groupByEnding(lots: Lot[]) {
+  const groups = GROUPS.map((g) => ({ ...g, lots: [] as Lot[] }));
+  const noDate: Lot[] = [];
+  for (const lot of lots) {
+    if (!lot.end_time) { noDate.push(lot); continue; }
+    const hours = (new Date(lot.end_time).getTime() - Date.now()) / 3_600_000;
+    groups.find((g) => hours <= g.until)!.lots.push(lot);
+  }
+  return [...groups, { label: "End date not listed", until: Infinity, lots: noDate }].filter((g) => g.lots.length);
+}
 
 const SOURCES: Record<string, string> = { gsa: "GSA Auctions", publicsurplus: "Public Surplus" };
 
@@ -40,7 +60,7 @@ async function loadLots(p: Params): Promise<{ lots: Lot[]; error?: string }> {
   const sort = SORTS[p.sort ?? "ending"] ?? SORTS.ending;
   let query = supabase
     .from("lots")
-    .select("id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen")
+    .select("id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen,est_value,est_low,est_high,comps_count,spread")
     .or(`end_time.gte.${new Date().toISOString()},end_time.is.null`);
 
   const q = (p.q ?? "").replace(/[^\p{L}\p{N}\s\-]/gu, " ").trim();
@@ -54,7 +74,7 @@ async function loadLots(p: Params): Promise<{ lots: Lot[]; error?: string }> {
 
   const { data, error } = await query
     .order(sort.column, { ascending: sort.ascending, nullsFirst: false })
-    .limit(120);
+    .limit(sort.column === "end_time" ? 300 : 120);
   if (error) return { lots: [], error: error.message };
   return { lots: (data ?? []) as Lot[] };
 }
@@ -62,6 +82,8 @@ async function loadLots(p: Params): Promise<{ lots: Lot[]; error?: string }> {
 export default async function Home({ searchParams }: { searchParams: Promise<Params> }) {
   const p = await searchParams;
   const { lots, error } = await loadLots(p);
+  const sortKey = p.sort ?? "ending";
+  const sections = sortKey === "ending" ? groupByEnding(lots) : [{ label: "", until: Infinity, lots }];
 
   return (
     <>
@@ -90,10 +112,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
         <button type="submit">Search</button>
       </form>
 
-      {error ? <p className="notice">{error}</p> : <p className="count">{lots.length === 120 ? "Showing first 120 lots" : `${lots.length} lots`}</p>}
+      {error ? <p className="notice">{error}</p> : <p className="count">{lots.length >= 120 ? `Showing first ${lots.length} lots` : `${lots.length} lots`}</p>}
 
+      {sections.map((section) => (
+      <section key={section.label || "all"}>
+        {section.label ? <h3 className="group-title">{section.label} <span>({section.lots.length})</span></h3> : null}
       <ul className="grid">
-        {lots.map((lot) => (
+        {section.lots.map((lot) => (
           <li key={lot.id} className="card">
             <a href={lot.lot_url ?? "#"} target="_blank" rel="noopener noreferrer">
               <div className="thumb">
@@ -102,6 +127,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
               <div className="body">
                 <h2>{lot.title}</h2>
                 <p className="price">{money(lot.current_bid)}</p>
+                {lot.est_value ? (
+                  <p className="value">
+                    Est. resale {money(lot.est_value)}
+                    <span className="range"> ({money(lot.est_low)}–{money(lot.est_high)}, {lot.comps_count} eBay listings)</span>
+                    {lot.spread !== null ? <span className={lot.spread > 0 ? "spread up" : "spread down"}>{lot.spread > 0 ? "+" : ""}{money(lot.spread)} vs. current bid</span> : null}
+                  </p>
+                ) : null}
                 <p className="meta">{[lot.city, lot.state].filter(Boolean).join(", ") || "Location not listed"}</p>
                 <p className="meta">{timeLeft(lot.end_time)} · {SOURCES[lot.source] ?? lot.source}</p>
                 {lot.category ? <span className="tag">{lot.category}</span> : null}
@@ -110,6 +142,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           </li>
         ))}
       </ul>
+      </section>
+      ))}
 
       {!error && lots.length === 0 ? <p className="notice">No lots match those filters yet.</p> : null}
     </>

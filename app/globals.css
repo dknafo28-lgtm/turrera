@@ -68,3 +68,11 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
 .tag { display: inline-block; margin-top: 8px; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: #e6f2ee; color: var(--accent); }
 
 .site-footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 24px; }
+
+.group-title { margin: 22px 0 10px; font-size: 1.05rem; }
+.group-title span { color: var(--muted); font-weight: 400; }
+.value { margin: 4px 0; font-size: 0.88rem; }
+.value .range { color: var(--muted); font-size: 0.78rem; }
+.spread { display: block; font-weight: 700; margin-top: 2px; }
+.spread.up { color: #0b6e4f; }
+.spread.down { color: #b42318; }

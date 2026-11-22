@@ -16,6 +16,11 @@ export type Lot = {
   photo_url: string | null;
   lot_url: string | null;
   first_seen: string;
+  est_value: number | null;
+  est_low: number | null;
+  est_high: number | null;
+  comps_count: number | null;
+  spread: number | null;
 };
 
 let client: SupabaseClient | null = null;

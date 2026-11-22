@@ -37,3 +37,16 @@ alter table public.lots enable row level security;
 drop policy if exists "Public read access" on public.lots;
 create policy "Public read access" on public.lots
   for select using (true);
+
+-- Resale value estimates (added Nov 2026). Safe to run more than once.
+alter table public.lots add column if not exists year int;
+alter table public.lots add column if not exists make text;
+alter table public.lots add column if not exists model text;
+alter table public.lots add column if not exists est_value numeric;
+alter table public.lots add column if not exists est_low numeric;
+alter table public.lots add column if not exists est_high numeric;
+alter table public.lots add column if not exists comps_count int;
+alter table public.lots add column if not exists value_source text;
+alter table public.lots add column if not exists value_updated timestamptz;
+alter table public.lots add column if not exists spread numeric generated always as (est_value - coalesce(current_bid, 0)) stored;
+create index if not exists lots_spread_idx on public.lots (spread);
