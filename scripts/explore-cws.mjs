@@ -3,22 +3,21 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function get(url) {
   const res = await fetch(url, { headers: UA, redirect: "follow" });
   const text = await res.text();
-  console.log(`\n===== ${url} -> ${res.status} (${text.length} chars) final=${res.url} type=${res.headers.get("content-type")}`);
+  console.log(`\n===== ${url} -> ${res.status} (${text.length} chars)`);
   return text;
 }
-const strip = (h) => h.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, "\n").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n");
-console.log((await get("https://bid.cwsmarketing.com/robots.txt")).slice(0, 1500));
-await sleep(3000);
-const list = await get("https://bid.cwsmarketing.com/auctions/?page=1&status=2");
-console.log("LIST LINKS:", [...new Set([...list.matchAll(/href="([^"#]+)"/g)].map((m) => m[1]))].filter((h) => /auction|lot|catalog/i.test(h)).slice(0, 60).join("\n"));
-console.log("LIST TEXT:", strip(list).slice(0, 2500));
-console.log("LIST SCRIPTS:", [...list.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]).join("\n"));
-const apis = [...new Set([...list.matchAll(/["'`]((?:https?:\/\/[^"'`]*)?\/(?:api|ajax|graphql|json)[^"'`\s]*)["'`]/gi)].map((m) => m[1]))];
-console.log("APIS:", apis.join("\n"));
-await sleep(3000);
-const cat = await get("https://bid.cwsmarketing.com/auctions/catalog/id/492");
-console.log("CAT LINKS:", [...new Set([...cat.matchAll(/href="([^"#]+)"/g)].map((m) => m[1]))].filter((h) => /lot|item|catalog|page/i.test(h)).slice(0, 40).join("\n"));
-const i = cat.search(/lot-?title|lot_title|class="[^"]*lot[^"]*"/i);
-console.log("CAT HTML at", i, cat.slice(Math.max(0, i - 500), i + 4000));
-const capis = [...new Set([...cat.matchAll(/["'`]((?:https?:\/\/[^"'`]*)?\/(?:api|ajax|graphql|json)[^"'`\s]*)["'`]/gi)].map((m) => m[1]))];
-console.log("CAT APIS:", capis.join("\n"));
+const strip = (h) => h.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, "\n").replace(/&#8211;/g, "–").replace(/&amp;/g, "&").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n");
+for (const path of ["/auctions/vehicles/", "/auctions/boats-vessels/", "/auctions/upcoming-auctions/"]) {
+  const html = await get("https://cwsmarketing.com" + path);
+  const t = strip(html);
+  const i = t.search(/Auction|Bid|Lot/);
+  const main = html.indexOf("fusion-row") ;
+  console.log("TEXT", path, t.slice(t.indexOf("Contact") > 0 ? 0 : 0, 200));
+  const k = t.indexOf("Vehicles") >= 0 ? t.indexOf("Vehicles") : 0;
+  console.log(t.slice(1800, 6000));
+  const bidLinks = [...new Set([...html.matchAll(/href="(https:\/\/bid\.cwsmarketing\.com\/[^"]+)"/g)].map((m) => m[1]))];
+  console.log("BIDLINKS", bidLinks.join(" "));
+  const j = html.indexOf("bid.cwsmarketing.com/auctions/catalog");
+  console.log("HTML AROUND CATALOG LINK:", html.slice(Math.max(0, j - 2500), j + 800).replace(/\s+/g, " "));
+  await sleep(5000);
+}
