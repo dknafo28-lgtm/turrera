@@ -91,7 +91,7 @@ function LotCard({ lot }: { lot: Lot }) {
         <div className="lot-numbers">
           <div>
             <span className="lot-label">Current bid</span>
-            <span className="lot-figure">{money(lot.current_bid) ?? "No bids"}</span>
+            <span className="lot-figure">{money(lot.current_bid) ?? (lot.source === "jjkane" ? "See auction" : "No bids")}</span>
           </div>
           {hasValue ? (
             <div>
@@ -149,7 +149,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
       <header className="masthead">
         <div className="masthead-inner">
           <a href="/" className="wordmark">Turrera</a>
-          <p className="masthead-note">Government surplus from GSA Auctions, Public Surplus and Municibid in one place, refreshed every 4 hours.</p>
+          <p className="masthead-note">Government surplus from GSA Auctions, Public Surplus, Municibid and JJ Kane in one place, refreshed every 4 hours.</p>
           <form className="search" method="get" action="/" role="search">
             {Object.entries(p).filter(([k, v]) => k !== "q" && k !== "page" && v).map(([k, v]) => (
               <input key={k} type="hidden" name={k} value={String(v)} />

@@ -28,8 +28,13 @@ function money(n: number | null | undefined) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
 
-function endsText(end: string | null) {
+function endsText(end: string | null, dateOnly = false) {
   if (!end) return { left: "No end date listed", when: null as string | null, soon: false };
+  if (dateOnly) {
+    const day = new Date(end).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" });
+    const daysLeft = Math.ceil((new Date(end).getTime() - Date.now()) / 86_400_000);
+    return { left: daysLeft <= 0 ? "Closing today" : `About ${daysLeft}d left`, when: `${day} (check the auction for the exact time)`, soon: daysLeft <= 1 };
+  }
   const ms = new Date(end).getTime() - Date.now();
   const when = new Date(end).toLocaleString("en-US", {
     weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short",
@@ -51,7 +56,7 @@ export default async function LotPage({ params }: { params: Promise<{ id: string
   if (!lot) notFound();
 
   const photos = (Array.isArray(lot.photos) && lot.photos.length ? lot.photos : [lot.photo_url]).filter(Boolean) as string[];
-  const ends = endsText(lot.end_time);
+  const ends = endsText(lot.end_time, lot.source === "jjkane");
   const source = SOURCES[lot.source] ?? lot.source;
   const hasValue = lot.est_value !== null && lot.est_value !== undefined;
   const place = [lot.city, lot.state, lot.zip].filter(Boolean).join(", ");
@@ -97,7 +102,7 @@ export default async function LotPage({ params }: { params: Promise<{ id: string
           <div className="detail-numbers">
             <div>
               <span className="lot-label">Current bid</span>
-              <span className="lot-figure">{money(lot.current_bid) ?? "No bids yet"}</span>
+              <span className="lot-figure">{money(lot.current_bid) ?? (lot.source === "jjkane" ? "Shown on the auction site" : "No bids yet")}</span>
             </div>
             {hasValue ? (
               <div>
