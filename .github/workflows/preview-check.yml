@@ -1,0 +1,49 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [redesign3]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx next build
+      - name: Render pages against real data
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          LOT=$(curl -s "http://localhost:3123/search?category=trucks&source=publicsurplus" | grep -o 'href="/lot/[^"]*"' | head -1 | cut -d'"' -f2)
+          echo "LOT=$LOT"
+          for url in "/" "/search?category=trucks" "$LOT" "/watchlist" "/?q=boat"; do
+            code=$(curl -s -o /tmp/p.html -w "%{http_code}" "http://localhost:3123$url")
+            echo "URL $url -> $code bytes=$(wc -c < /tmp/p.html)"
+          done
+          mkdir -p shots
+          CHROME=$(which google-chrome || which chromium)
+          shot() { $CHROME --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=8000 --window-size=$2 --screenshot=shots/$1.png "http://localhost:3123$3" 2>/dev/null; }
+          shot home-desktop 1400,2600 "/"
+          shot home-mobile 390,2400 "/"
+          shot search-desktop 1400,1700 "/search?category=trucks"
+          shot search-mobile 390,1400 "/search?category=trucks"
+          shot lot-desktop 1400,1900 "$LOT"
+          shot lot-mobile 390,2200 "$LOT"
+          grep -i "error" /tmp/next.log | grep -v DEP0 | head -5 || true
+      - name: Save screenshots to the preview-shots branch
+        run: |
+          cp -r shots /tmp/shots
+          git config user.name "turrera-bot"; git config user.email "bot@turrera.com"
+          git checkout --orphan preview-shots
+          git rm -rq --cached . && rm -rf ./* .github .gitignore
+          cp /tmp/shots/*.png .
+          git add *.png && git commit -qm "Screenshots" && git push -f origin preview-shots
