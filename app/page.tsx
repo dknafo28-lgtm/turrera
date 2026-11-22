@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
+import NewsletterForm from "@/components/NewsletterForm";
 import { CATEGORIES, SOURCE_SHORT, STATES, loadHome, type Params } from "@/lib/lots";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +87,27 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
             <div className="rail">{deals.map((lot) => <LotCard key={lot.id} lot={lot} layout="rail" />)}</div>
           </section>
         ) : null}
+
+        <section className="home-section home-band">
+          <div>
+            <h2>The best government surplus deals, every week</h2>
+            <p>One email with the lots furthest under market value, what&apos;s closing soon, and boats and trucks worth flipping. Free.</p>
+          </div>
+          <NewsletterForm source="home" />
+        </section>
+
+        <section className="home-section home-services">
+          <a href="/buy-for-me" className="service-card">
+            <strong>We buy it for you</strong>
+            <span>Can&apos;t bid or pick up yourself? We bid to your limit, pay, pick up and ship, including to the Bahamas and the Caribbean.</span>
+            <em>How it works</em>
+          </a>
+          <a href="/sell" className="service-card">
+            <strong>Sell your fleet</strong>
+            <span>Trucks, vans, buses and equipment from businesses, agencies and nonprofits, sold to buyers already looking for them.</span>
+            <em>Get a free estimate</em>
+          </a>
+        </section>
 
         {newest.length ? (
           <section className="home-section" aria-labelledby="new-h">

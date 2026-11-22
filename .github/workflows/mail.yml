@@ -1,0 +1,45 @@
+name: Email (newsletter, new requests)
+
+on:
+  schedule:
+    - cron: "7 * * * *"      # hourly: send an approved newsletter, tell David about new requests
+    - cron: "41 11 * * 1"    # Mondays 6:41 am Eastern: write the weekly newsletter draft
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Write a new newsletter draft now"
+        type: boolean
+        default: false
+
+concurrency:
+  group: mail
+  cancel-in-progress: false
+
+jobs:
+  mail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      ALERTS_IMAP_USER: ${{ secrets.ALERTS_IMAP_USER }}
+      ALERTS_IMAP_PASSWORD: ${{ secrets.ALERTS_IMAP_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
+      SITE_PUBLIC: ${{ vars.SITE_PUBLIC }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Write weekly newsletter draft
+        if: github.event.schedule == '41 11 * * 1' || inputs.draft
+        run: node collectors/newsletter-draft.mjs
+      - name: Send approved newsletter and notify David
+        if: always()
+        run: node collectors/newsletter-send.mjs

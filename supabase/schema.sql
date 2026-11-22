@@ -70,3 +70,162 @@ alter table public.lots add column if not exists appraisal_updated timestamptz;
 
 -- All photos for a lot (added Nov 2026). Safe to run more than once.
 alter table public.lots add column if not exists photos jsonb;
+
+-- ============================================================
+-- Buyers, sellers and email: newsletter, search alerts,
+-- "Buy this for me" requests, "Sell your fleet" leads.
+-- The website can only INSERT through the functions below;
+-- reading these tables needs the service-role key (admin page, collectors).
+-- ============================================================
+
+
+create table if not exists public.subscribers (
+  id          uuid primary key default gen_random_uuid(),
+  email       text not null unique,
+  name        text,
+  source      text,                        -- where they signed up: footer, home, lot, buy-request
+  token       text not null default replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''),
+  status      text not null default 'active', -- active | unsubscribed
+  created_at  timestamptz not null default now(),
+  unsubscribed_at timestamptz
+);
+
+create table if not exists public.saved_searches (
+  id          uuid primary key default gen_random_uuid(),
+  email       text not null,
+  params      jsonb not null,              -- same keys as the search page: q, category, state, min, max, source, deal
+  label       text,
+  token       text not null default replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''),
+  active      boolean not null default true,
+  last_sent   timestamptz not null default now(),
+  created_at  timestamptz not null default now()
+);
+create index if not exists saved_searches_active_idx on public.saved_searches (active);
+
+create table if not exists public.buy_requests (
+  id            uuid primary key default gen_random_uuid(),
+  lot_id        text not null,
+  lot_title     text,
+  lot_url       text,
+  name          text not null,
+  email         text not null,
+  phone         text,
+  max_bid       numeric not null,
+  destination   text,                      -- zip, city or export port
+  notes         text,
+  deposit       numeric,
+  status        text not null default 'new', -- new | deposit_paid | bidding | won | lost | paid | shipped | done | cancelled
+  stripe_session text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create table if not exists public.sell_leads (
+  id           uuid primary key default gen_random_uuid(),
+  kind         text,                       -- business | government | nonprofit
+  company      text not null,
+  name         text not null,
+  email        text not null,
+  phone        text,
+  call_consent boolean not null default false,
+  location     text,
+  fleet_size   text,
+  items        text,                       -- what they want to sell
+  timeline     text,
+  status       text not null default 'new', -- new | contacted | booked | listed | sold | lost
+  created_at   timestamptz not null default now()
+);
+
+create table if not exists public.newsletters (
+  id          uuid primary key default gen_random_uuid(),
+  subject     text not null,
+  intro       text,
+  html        text not null,
+  social      jsonb,                       -- [{ lot_id, text }]
+  lot_ids     text[],
+  status      text not null default 'draft', -- draft | approved | sending | sent | discarded
+  sent_count  int,
+  created_at  timestamptz not null default now(),
+  approved_at timestamptz,
+  sent_at     timestamptz
+);
+
+grant all on public.subscribers, public.saved_searches, public.buy_requests, public.sell_leads, public.newsletters to service_role;
+alter table public.subscribers    enable row level security;
+alter table public.saved_searches enable row level security;
+alter table public.buy_requests   enable row level security;
+alter table public.sell_leads     enable row level security;
+alter table public.newsletters    enable row level security;
+
+-- Inserts from the website go through these functions, so the anon key never reads anyone's email.
+create or replace function public.subscribe(p_email text, p_name text default null, p_source text default null)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' or length(p_email) > 200 then raise exception 'invalid email'; end if;
+  insert into subscribers (email, name, source) values (lower(trim(p_email)), left(p_name, 120), left(p_source, 40))
+  on conflict (email) do update set status = 'active', unsubscribed_at = null,
+    name = coalesce(subscribers.name, excluded.name);
+end $$;
+
+create or replace function public.unsubscribe(p_token text)
+returns text language plpgsql security definer set search_path = public as $$
+declare e text;
+begin
+  update subscribers set status = 'unsubscribed', unsubscribed_at = now() where token = p_token returning email into e;
+  if e is not null then
+    update saved_searches set active = false where lower(email) = e;
+    return e;
+  end if;
+  update saved_searches set active = false where token = p_token returning email into e;
+  return e;
+end $$;
+
+create or replace function public.save_search(p_email text, p_params jsonb, p_label text default null)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' or length(p_email) > 200 then raise exception 'invalid email'; end if;
+  if (select count(*) from saved_searches where lower(email) = lower(trim(p_email)) and active) >= 20 then
+    raise exception 'too many saved searches';
+  end if;
+  insert into saved_searches (email, params, label) values (lower(trim(p_email)), p_params, left(p_label, 160));
+end $$;
+
+create or replace function public.request_buy(p_lot_id text, p_name text, p_email text, p_phone text,
+  p_max_bid numeric, p_destination text, p_notes text, p_deposit numeric)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare rid uuid; t text; u text;
+begin
+  if p_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'invalid email'; end if;
+  if p_max_bid is null or p_max_bid <= 0 or p_max_bid > 10000000 then raise exception 'invalid max bid'; end if;
+  select title, lot_url into t, u from lots where id = p_lot_id;
+  if t is null and u is null then raise exception 'lot not found'; end if;
+  insert into buy_requests (lot_id, lot_title, lot_url, name, email, phone, max_bid, destination, notes, deposit)
+  values (p_lot_id, t, u, left(p_name, 120), lower(trim(p_email)), left(p_phone, 40), p_max_bid,
+          left(p_destination, 160), left(p_notes, 2000), p_deposit)
+  returning id into rid;
+  return rid;
+end $$;
+
+create or replace function public.submit_sell_lead(p_kind text, p_company text, p_name text, p_email text, p_phone text,
+  p_call_consent boolean, p_location text, p_fleet_size text, p_items text, p_timeline text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'invalid email'; end if;
+  insert into sell_leads (kind, company, name, email, phone, call_consent, location, fleet_size, items, timeline)
+  values (left(p_kind, 20), left(p_company, 160), left(p_name, 120), lower(trim(p_email)), left(p_phone, 40),
+          coalesce(p_call_consent, false), left(p_location, 160), left(p_fleet_size, 40), left(p_items, 3000), left(p_timeline, 60));
+end $$;
+
+revoke all on function public.subscribe(text, text, text) from public;
+revoke all on function public.unsubscribe(text) from public;
+revoke all on function public.save_search(text, jsonb, text) from public;
+revoke all on function public.request_buy(text, text, text, text, numeric, text, text, numeric) from public;
+revoke all on function public.submit_sell_lead(text, text, text, text, text, boolean, text, text, text, text) from public;
+grant execute on function public.subscribe(text, text, text) to anon, authenticated, service_role;
+grant execute on function public.unsubscribe(text) to anon, authenticated, service_role;
+grant execute on function public.save_search(text, jsonb, text) to anon, authenticated, service_role;
+grant execute on function public.request_buy(text, text, text, text, numeric, text, text, numeric) to anon, authenticated, service_role;
+grant execute on function public.submit_sell_lead(text, text, text, text, text, boolean, text, text, text, text) to anon, authenticated, service_role;
+
+alter table public.buy_requests add column if not exists notified_at timestamptz;
+alter table public.sell_leads   add column if not exists notified_at timestamptz;
