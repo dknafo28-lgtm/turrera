@@ -18,7 +18,9 @@ export const STATES = [
   "RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY",
 ];
 
-export const SOURCES: Record<string, string> = { gsa: "GSA Auctions", publicsurplus: "Public Surplus", municibid: "Municibid", jjkane: "JJ Kane (government sellers)" };
+export const SOURCES: Record<string, string> = { gsa: "GSA Auctions", publicsurplus: "Public Surplus", municibid: "Municibid", jjkane: "JJ Kane (government sellers)",
+  govdeals: "GovDeals (your alerts)", govplanet: "GovPlanet (your alerts)", cws: "CWS Marketing (your alerts)",
+};
 
 export const SORTS: Record<string, { label: string; column: string; ascending: boolean }> = {
   ending: { label: "Ending soonest", column: "end_time", ascending: true },
