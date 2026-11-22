@@ -57,10 +57,18 @@ async function loadLots(p: Params): Promise<{ lots: Lot[]; error?: string }> {
   const supabase = getReadClient();
   if (!supabase) return { lots: [], error: "Database not connected yet — add the Supabase keys in Vercel." };
 
+  const base = "id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen";
+  const first = await runQuery(supabase, p, `${base},est_value,est_low,est_high,comps_count,spread`);
+  // Before the value columns are added in Supabase, fall back to the basic columns.
+  if (first.error && /does not exist|spread/i.test(first.error)) return runQuery(supabase, { ...p, sort: p.sort === "spread" ? "ending" : p.sort }, base);
+  return first;
+}
+
+async function runQuery(supabase: NonNullable<ReturnType<typeof getReadClient>>, p: Params, columns: string): Promise<{ lots: Lot[]; error?: string }> {
   const sort = SORTS[p.sort ?? "ending"] ?? SORTS.ending;
   let query = supabase
     .from("lots")
-    .select("id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen,est_value,est_low,est_high,comps_count,spread")
+    .select(columns)
     .or(`end_time.gte.${new Date().toISOString()},end_time.is.null`);
 
   const q = (p.q ?? "").replace(/[^\p{L}\p{N}\s\-]/gu, " ").trim();
@@ -76,7 +84,7 @@ async function loadLots(p: Params): Promise<{ lots: Lot[]; error?: string }> {
     .order(sort.column, { ascending: sort.ascending, nullsFirst: false })
     .limit(sort.column === "end_time" ? 300 : 120);
   if (error) return { lots: [], error: error.message };
-  return { lots: (data ?? []) as Lot[] };
+  return { lots: (data ?? []) as unknown as Lot[] };
 }
 
 export default async function Home({ searchParams }: { searchParams: Promise<Params> }) {
