@@ -1,0 +1,19 @@
+name: Public Surplus details only
+on:
+  workflow_dispatch: {}
+jobs:
+  details:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node collectors/publicsurplus-details.mjs
+        env:
+          PS_DETAILS_PER_RUN: 60
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
