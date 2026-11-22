@@ -201,6 +201,7 @@ img { display: block; }
 .detail { max-width: 1240px; margin: 0 auto; padding: 16px 20px 40px; }
 .back { display: inline-block; margin-bottom: 14px; font-weight: 600; color: var(--ink-soft); }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.gallery, .facts { min-width: 0; }
 .gallery-strip {
   display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth;
   border-radius: 6px; background: #dde2e7; scrollbar-width: thin;
@@ -247,7 +248,7 @@ img { display: block; }
 .detail-description p { white-space: pre-line; line-height: 1.55; max-width: 75ch; margin: 0; }
 
 @media (max-width: 860px) {
-  .detail-grid { grid-template-columns: 1fr; gap: 18px; }
+  .detail-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
 }
 @media (max-width: 640px) {
   .detail { padding: 10px 0 28px; }
