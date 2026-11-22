@@ -71,8 +71,9 @@ async function runQuery(supabase: NonNullable<ReturnType<typeof getReadClient>>,
     .select(columns)
     .or(`end_time.gte.${new Date().toISOString()},end_time.is.null`);
 
-  const q = (p.q ?? "").replace(/[^\p{L}\p{N}\s\-]/gu, " ").trim();
-  if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+  // Every word must appear in the title or description, in any order ("ford truck" finds "Ford F-250 pickup truck").
+  const words = (p.q ?? "").toLowerCase().replace(/[^\p{L}\p{N}\s\-.]/gu, " ").split(/\s+/).filter(Boolean).slice(0, 6);
+  for (const w of words) query = query.or(`title.ilike."%${w}%",description.ilike."%${w}%"`);
   if (p.category && CATEGORIES.includes(p.category)) query = query.eq("category", p.category);
   if (p.state && STATES.includes(p.state)) query = query.eq("state", p.state);
   if (p.source && p.source in SOURCES) query = query.eq("source", p.source);

@@ -15,6 +15,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <span className="tagline">Government surplus, all in one place</span>
         </header>
         <main>{children}</main>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `document.addEventListener("change", function (e) {
+  var el = e.target;
+  if (el && el.tagName === "SELECT" && el.form && el.form.classList.contains("filters")) el.form.submit();
+});`,
+          }}
+        />
         <footer className="site-footer">
           Listings link to the original auction. Turrera is not affiliated with the listing agencies.
         </footer>

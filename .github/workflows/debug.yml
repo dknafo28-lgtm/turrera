@@ -13,15 +13,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx next build
-      - name: Try the site's searches
-        env:
+      - env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           npx next start -p 3123 > /tmp/next.log 2>&1 &
           sleep 8
-          for url in "/" "/?q=truck" "/?q=ford+f-150" "/?category=boats" "/?q=boat&category=boats" "/?q=&category=boats&state=&source=&max=&ending=&sort=ending"; do
+          for url in "/?q=truck" "/?q=ford+truck" "/?q=ford+f-150" "/?q=Ford+F-150" "/?q=outboard&category=boats" "/?category=boats" "/?q=2017+ford" "/?q=c.o.%22x%22"; do
             body=$(curl -s "http://localhost:3123$url")
-            echo "URL $url -> count: $(echo "$body" | grep -o 'class="count">[^<]*' | head -1) | notice: $(echo "$body" | grep -o 'class="notice">[^<]*' | head -1) | cards: $(echo "$body" | grep -o 'class="card"' | wc -l)"
+            echo "URL $url -> $(echo "$body" | grep -o 'class="count">[^<]*' | head -1) | $(echo "$body" | grep -o 'class="notice">[^<]*' | head -1)"
           done
-          echo "SERVER LOG:"; tail -20 /tmp/next.log
