@@ -1,0 +1,45 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [redesign2]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx next build
+      - name: Render pages against real data
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          PS=$(curl -s "http://localhost:3123/?category=trucks&source=publicsurplus" | grep -o 'href="/lot/[^"]*"' | head -1 | cut -d'"' -f2)
+          GSA=$(curl -s "http://localhost:3123/?category=trucks&source=gsa" | grep -o 'href="/lot/[^"]*"' | head -1 | cut -d'"' -f2)
+          echo "PS=$PS GSA=$GSA"
+          for url in "$PS" "$GSA" "/lot/nope"; do
+            code=$(curl -s -o /tmp/p.html -w "%{http_code}" "http://localhost:3123$url")
+            echo "URL $url -> $code | photos=$(grep -o 'class="gallery-item"' /tmp/p.html | wc -l) | h1=$(grep -o '<h1>[^<]*' /tmp/p.html | head -1)"
+          done
+          mkdir -p shots
+          CHROME=$(which google-chrome || which chromium)
+          $CHROME --headless=new --disable-gpu --hide-scrollbars --window-size=1366,1300 --screenshot=shots/detail-desktop.png "http://localhost:3123$PS" 2>/dev/null
+          $CHROME --headless=new --disable-gpu --hide-scrollbars --window-size=390,1800 --screenshot=shots/detail-mobile.png "http://localhost:3123$PS" 2>/dev/null
+          grep -i "error" /tmp/next.log | grep -v DEP0 | head -5
+      - name: Save screenshots to the preview-shots branch
+        run: |
+          cp -r shots /tmp/shots
+          git config user.name "turrera-bot"; git config user.email "bot@turrera.com"
+          git checkout --orphan preview-shots
+          git rm -rq --cached . && rm -rf ./* .github .gitignore
+          cp /tmp/shots/*.png .
+          git add *.png && git commit -qm "Screenshots" && git push -f origin preview-shots
