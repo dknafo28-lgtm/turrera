@@ -15,7 +15,9 @@ const SORTS: Record<string, { label: string; column: string; ascending: boolean 
   price_high: { label: "Price: high to low", column: "current_bid", ascending: false },
 };
 
-type Params = { q?: string; category?: string; state?: string; max?: string; sort?: string; ending?: string };
+const SOURCES: Record<string, string> = { gsa: "GSA Auctions", publicsurplus: "Public Surplus" };
+
+type Params = { q?: string; category?: string; state?: string; max?: string; sort?: string; ending?: string; source?: string };
 
 function money(n: number | null) {
   if (n === null || n === undefined) return "No bids yet";
@@ -45,6 +47,7 @@ async function loadLots(p: Params): Promise<{ lots: Lot[]; error?: string }> {
   if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
   if (p.category && CATEGORIES.includes(p.category)) query = query.eq("category", p.category);
   if (p.state && STATES.includes(p.state)) query = query.eq("state", p.state);
+  if (p.source && p.source in SOURCES) query = query.eq("source", p.source);
   const max = Number(p.max);
   if (p.max && Number.isFinite(max) && max > 0) query = query.lte("current_bid", max);
   if (p.ending === "48h") query = query.lte("end_time", new Date(Date.now() + 48 * 3_600_000).toISOString());
@@ -72,6 +75,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           <option value="">All states</option>
           {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
+        <select name="source" defaultValue={p.source ?? ""}>
+          <option value="">All sites</option>
+          {Object.entries(SOURCES).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+        </select>
         <input type="number" name="max" min="0" step="100" placeholder="Max price $" defaultValue={p.max ?? ""} />
         <select name="ending" defaultValue={p.ending ?? ""}>
           <option value="">Any end date</option>
@@ -96,7 +103,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
                 <h2>{lot.title}</h2>
                 <p className="price">{money(lot.current_bid)}</p>
                 <p className="meta">{[lot.city, lot.state].filter(Boolean).join(", ") || "Location not listed"}</p>
-                <p className="meta">{timeLeft(lot.end_time)} · {lot.source.toUpperCase()}</p>
+                <p className="meta">{timeLeft(lot.end_time)} · {SOURCES[lot.source] ?? lot.source}</p>
                 {lot.category ? <span className="tag">{lot.category}</span> : null}
               </div>
             </a>

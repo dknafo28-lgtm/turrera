@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "collect:gsa": "node collectors/gsa.mjs",
+    "collect:publicsurplus": "node collectors/publicsurplus.mjs",
     "test": "node --test collectors/*.test.mjs"
   },
   "dependencies": {

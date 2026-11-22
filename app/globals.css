@@ -32,7 +32,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
 
 .filters {
   display: grid;
-  grid-template-columns: 2fr repeat(5, 1fr) auto;
+  grid-template-columns: 2fr repeat(6, 1fr) auto;
   gap: 8px;
   margin-bottom: 12px;
 }
