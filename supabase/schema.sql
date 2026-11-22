@@ -50,3 +50,8 @@ alter table public.lots add column if not exists value_source text;
 alter table public.lots add column if not exists value_updated timestamptz;
 alter table public.lots add column if not exists spread numeric generated always as (est_value - coalesce(current_bid, 0)) stored;
 create index if not exists lots_spread_idx on public.lots (spread);
+
+-- Condition summaries (added Nov 2026). Safe to run more than once.
+alter table public.lots add column if not exists condition text;
+alter table public.lots add column if not exists condition_updated timestamptz;
+alter table public.lots add column if not exists details_fetched timestamptz;

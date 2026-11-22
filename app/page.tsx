@@ -58,7 +58,7 @@ async function loadLots(p: Params): Promise<{ lots: Lot[]; error?: string }> {
   if (!supabase) return { lots: [], error: "Database not connected yet — add the Supabase keys in Vercel." };
 
   const base = "id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen";
-  const first = await runQuery(supabase, p, `${base},est_value,est_low,est_high,comps_count,spread`);
+  const first = await runQuery(supabase, p, `${base},est_value,est_low,est_high,comps_count,spread,condition`);
   // Before the value columns are added in Supabase, fall back to the basic columns.
   if (first.error && /does not exist|spread/i.test(first.error)) return runQuery(supabase, { ...p, sort: p.sort === "spread" ? "ending" : p.sort }, base);
   return first;
@@ -135,6 +135,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
               </div>
               <div className="body">
                 <h2>{lot.title}</h2>
+                {lot.condition ? <p className="condition">{lot.condition}</p> : null}
                 <p className="price">{money(lot.current_bid)}</p>
                 {lot.est_value ? (
                   <p className="value">

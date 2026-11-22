@@ -21,6 +21,7 @@ export type Lot = {
   est_high: number | null;
   comps_count: number | null;
   spread: number | null;
+  condition: string | null;
 };
 
 let client: SupabaseClient | null = null;
