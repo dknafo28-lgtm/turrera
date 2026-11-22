@@ -13,6 +13,7 @@ export function lotHref(id: string) {
 export default function LotCard({ lot, layout = "grid" }: { lot: Lot; layout?: "grid" | "list" | "rail" }) {
   const href = lotHref(lot.id);
   const hasValue = lot.est_value !== null && lot.est_value !== undefined;
+  const under = hasValue && (lot.current_bid ?? 0) > 0 && lot.spread !== null && lot.spread > 0 ? lot.spread : null;
   const place = [lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ");
   const bid = money(lot.current_bid) ?? (lot.source === "jjkane" ? "See auction" : "No bids yet");
   return (
@@ -39,9 +40,9 @@ export default function LotCard({ lot, layout = "grid" }: { lot: Lot; layout?: "
             </div>
           ) : null}
         </div>
-        {(hasValue && lot.spread !== null && lot.spread > 0) || lot.sell_ease ? (
+        {under !== null || lot.sell_ease ? (
           <div className="card-tags">
-            {hasValue && lot.spread !== null && lot.spread > 0 ? <span className="tag tag-deal">{shortMoney(lot.spread)} under value</span> : null}
+            {under !== null ? <span className="tag tag-deal">{shortMoney(under)} under value</span> : null}
             {lot.sell_ease ? <span className={`tag tag-ease-${lot.sell_ease}`}>{EASE_LABEL[lot.sell_ease] ?? lot.sell_ease}</span> : null}
           </div>
         ) : null}

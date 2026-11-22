@@ -70,7 +70,7 @@ function applyFilters<T extends { or: any; eq: any; in: any; lte: any; gte: any;
   if (full) {
     if (p.ease === "easy") q = q.eq("sell_ease", "easy");
     if (p.ease === "moderate") q = q.in("sell_ease", ["easy", "moderate"]);
-    if (p.deal === "1") q = q.gt("spread", 0);
+    if (p.deal === "1") q = q.gt("spread", 0).gt("current_bid", 0);
   }
   return q;
 }
@@ -146,7 +146,7 @@ export async function loadHome() {
   const tilesP = Promise.all(CATEGORIES.filter((c) => c.key !== "other").map(async (c) => [c.key, (await photoFor(c.key))[0]?.photo_url ?? null] as const));
   const [endingSoon, deals, newest, counts, sourceCounts, tiles] = await Promise.all([
     list((q) => q.gte("end_time", now).lte("end_time", day).in("category", MAIN).not("photo_url", "is", null).order("end_time", { ascending: true }), FULL, 10),
-    list((q) => q.gte("end_time", now).gt("spread", 0).in("category", MAIN).not("photo_url", "is", null).in("sell_ease", ["easy", "moderate"]).order("spread", { ascending: false }), FULL, 10),
+    list((q) => q.gte("end_time", now).gt("spread", 0).gt("current_bid", 0).in("category", MAIN).not("photo_url", "is", null).in("sell_ease", ["easy", "moderate"]).order("spread", { ascending: false }), FULL, 10),
     list((q) => q.gte("end_time", now).in("category", MAIN).not("photo_url", "is", null).order("first_seen", { ascending: false }), FULL, 10),
     categoryCounts({}),
     sourceCountsOpen(),

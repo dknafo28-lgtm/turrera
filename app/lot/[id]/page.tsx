@@ -53,7 +53,7 @@ export default async function LotPage({ params }: { params: Promise<{ id: string
   const place = [lot.city ? titleCase(lot.city) : null, lot.state, lot.zip].filter(Boolean).join(", ");
   const closes = closesAt(lot.end_time, dateOnly);
   const bid = money(lot.current_bid) ?? (dateOnly ? "Shown on JJ Kane" : "No bids yet");
-  const deal = hasValue && lot.spread !== null && lot.spread !== undefined ? lot.spread : null;
+  const deal = hasValue && (lot.current_bid ?? 0) > 0 && lot.spread !== null && lot.spread !== undefined ? lot.spread : null;
   const l = lot as FullLot & { year?: number | null; make?: string | null; model?: string | null };
   const vehicle = [l.year, l.make ? titleCase(l.make) : null, l.model ? titleCase(l.model) : null].filter(Boolean).join(" ");
 

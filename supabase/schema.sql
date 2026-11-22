@@ -48,7 +48,14 @@ alter table public.lots add column if not exists est_high numeric;
 alter table public.lots add column if not exists comps_count int;
 alter table public.lots add column if not exists value_source text;
 alter table public.lots add column if not exists value_updated timestamptz;
-alter table public.lots add column if not exists spread numeric generated always as (est_value - coalesce(current_bid, 0)) stored;
+-- Spread only counts when there is a real bid; a missing or $0 bid is not a price.
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'lots'
+             and column_name = 'spread' and generation_expression not ilike '%case%') then
+    alter table public.lots drop column spread;
+  end if;
+end $$;
+alter table public.lots add column if not exists spread numeric generated always as (case when current_bid > 0 then est_value - current_bid end) stored;
 create index if not exists lots_spread_idx on public.lots (spread);
 
 -- Condition summaries (added Nov 2026). Safe to run more than once.
