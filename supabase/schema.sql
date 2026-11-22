@@ -60,3 +60,6 @@ alter table public.lots add column if not exists details_fetched timestamptz;
 alter table public.lots add column if not exists sell_ease text;
 alter table public.lots add column if not exists sell_note text;
 alter table public.lots add column if not exists appraisal_updated timestamptz;
+
+-- All photos for a lot (added Nov 2026). Safe to run more than once.
+alter table public.lots add column if not exists photos jsonb;

@@ -78,15 +78,16 @@ function activeFilters(p: Params) {
 function LotCard({ lot }: { lot: Lot }) {
   const left = timeLeft(lot.end_time);
   const url = lot.lot_url ?? "#";
+  const page = `/lot/${encodeURIComponent(lot.id)}`;
   const hasValue = lot.est_value !== null && lot.est_value !== undefined;
   return (
     <li className="lot">
-      <a className="lot-photo" href={url} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true">
+      <a className="lot-photo" href={page} tabIndex={-1} aria-hidden="true">
         {lot.photo_url ? <img src={lot.photo_url} alt="" loading="lazy" decoding="async" /> : <span className="lot-nophoto">No photo</span>}
         <span className={left.soon ? "lot-tag lot-tag-soon" : "lot-tag"}>{left.text}</span>
       </a>
       <div className="lot-body">
-        <h2 className="lot-title"><a href={url} target="_blank" rel="noopener noreferrer">{lot.title}</a></h2>
+        <h2 className="lot-title"><a href={page}>{lot.title}</a></h2>
         <div className="lot-numbers">
           <div>
             <span className="lot-label">Current bid</span>
@@ -118,7 +119,7 @@ function LotCard({ lot }: { lot: Lot }) {
                   {lot.value_source === "ebay" ? `Value from ${lot.comps_count} similar eBay listings.` : "Value is an AI estimate from the listing. Check real sales before bidding."}
                 </p>
               ) : null}
-              <a href={url} target="_blank" rel="noopener noreferrer">Open the full auction listing</a>
+              <a href={page}>See photos and full details</a>
             </div>
           </details>
         ) : null}

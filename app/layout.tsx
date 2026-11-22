@@ -25,10 +25,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: `document.addEventListener("error", function (e) {
   var img = e.target;
-  if (img && img.tagName === "IMG" && img.parentElement && img.parentElement.classList.contains("lot-photo")) img.parentElement.classList.add("photo-missing");
+  if (img && img.tagName === "IMG" && img.parentElement && (img.parentElement.classList.contains("lot-photo") || img.parentElement.classList.contains("gallery-item"))) img.parentElement.classList.add("photo-missing");
 }, true);
 document.querySelectorAll(".lot-photo img").forEach(function (img) {
   if (img.complete && img.naturalWidth === 0) img.parentElement.classList.add("photo-missing");
+});
+document.addEventListener("click", function (e) {
+  var a = e.target && e.target.closest ? e.target.closest("a[data-back]") : null;
+  if (a && document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1) { e.preventDefault(); history.back(); }
 });
 document.addEventListener("change", function (e) {
   var el = e.target;

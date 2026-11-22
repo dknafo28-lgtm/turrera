@@ -8,7 +8,15 @@ import { getWriteClient } from "./db.mjs";
 
 const HEADERS = { "User-Agent": "TurreraBot/1.0 (+https://turrera.com)" };
 const DELAY_MS = 4000;
-const MAX_PER_RUN = Number(process.env.PS_DETAILS_PER_RUN ?? 150);
+const MAX_PER_RUN = Number(process.env.PS_DETAILS_PER_RUN ?? 220);
+
+// All photos for the auction, full size ("thumb-a"), in page order.
+export function extractPhotos(html, auc) {
+  const re = new RegExp(`https://[^"' )]*?/sms/docviewer/cdnaucdoc/thumb-[a-z]/${auc}/\\d+`, "g");
+  const seen = new Set();
+  for (const m of html.matchAll(re)) seen.add(m[0].replace(/\/thumb-[a-z]\//, "/thumb-a/"));
+  return [...seen].slice(0, 30);
+}
 
 export function extractDescription(html) {
   const text = html
@@ -42,7 +50,7 @@ export async function run() {
       .from("lots")
       .select("id")
       .eq("source", "publicsurplus")
-      .is("details_fetched", null)
+      .is("photos", null)
       .gte("end_time", new Date().toISOString());
     q = wantOther ? q.eq("category", "other") : q.neq("category", "other");
     const { data, error } = await q.order("end_time", { ascending: true }).limit(MAX_PER_RUN - lots.length);
@@ -55,10 +63,13 @@ export async function run() {
     if (i > 0) await new Promise((r) => setTimeout(r, DELAY_MS));
     const auc = lot.id.split(":")[1];
     let description = null;
+    let photos = [];
     try {
       const res = await fetch(`https://www.publicsurplus.com/sms/auction/view?auc=${auc}`, { headers: HEADERS });
       if (!res.ok) { console.warn(`Auction ${auc}: HTTP ${res.status}`); continue; }
-      description = extractDescription(await res.text());
+      const html = await res.text();
+      description = extractDescription(html);
+      photos = extractPhotos(html, auc);
     } catch (err) {
       console.warn(`Auction ${auc}: ${err}`);
       continue;
@@ -66,7 +77,7 @@ export async function run() {
     if (description) found++;
     const { error: upErr } = await supabase
       .from("lots")
-      .update({ description, details_fetched: new Date().toISOString() })
+      .update({ description, photos, details_fetched: new Date().toISOString() })
       .eq("id", lot.id);
     if (upErr) throw new Error(`Supabase update failed: ${upErr.message}`);
   }
