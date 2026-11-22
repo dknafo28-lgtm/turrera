@@ -44,29 +44,60 @@ function clean(value) {
   return s.length ? s : null;
 }
 
-const STATUS = { A: "active", P: "preview" };
+function stripHtml(value) {
+  const s = clean(value);
+  if (!s) return null;
+  return s
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-export function toLot(r) {
-  const title = clean(r.ItemName) ?? clean(r.LotDescript) ?? "Untitled lot";
-  const description = clean(r.LotDescript);
-  const id = `gsa:${clean(r.SaleNo) ?? "unknown"}:${clean(r.LotNo) ?? clean(r.LotSequence) ?? "0"}`;
+function status(value) {
+  const s = (clean(value) ?? "").toLowerCase();
+  if (s === "a" || s.startsWith("active")) return "active";
+  if (s === "p" || s.startsWith("preview")) return "preview";
+  return s || "scheduled";
+}
+
+// The API's field casing varies (saleNo vs SaleNo), so look fields up case-insensitively.
+function reader(record) {
+  const map = new Map(Object.entries(record ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  return (...names) => {
+    for (const n of names) {
+      const v = map.get(n.toLowerCase());
+      if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+    }
+    return null;
+  };
+}
+
+export function toLot(record) {
+  const f = reader(record);
+  const title = clean(f("itemName")) ?? stripHtml(f("lotDescript", "lotInfo"))?.slice(0, 120) ?? "Untitled lot";
+  const description = stripHtml(f("lotInfo", "lotDescript"));
+  const id = `gsa:${clean(f("saleNo")) ?? "unknown"}:${clean(f("lotNo", "lotSequence")) ?? "0"}`;
   return {
     id,
     source: "gsa",
     title,
     description,
     category: categorize(title, description ?? ""),
-    current_bid: toNumber(r.HighBidAmount),
-    start_time: toDate(r.AucStartDt),
-    end_time: toDate(r.AucEndDt),
-    status: STATUS[clean(r.AuctionStatus) ?? ""] ?? "scheduled",
-    city: clean(r.PropertyCity) ?? clean(r.LocationCity),
-    state: (clean(r.PropertyState) ?? clean(r.LocationST))?.toUpperCase() ?? null,
-    zip: clean(r.PropertyZip) ?? clean(r.LocationZip),
-    agency: clean(r.AgencyName) ?? clean(r.PropertyAddr1),
-    photo_url: clean(r.ImageURL),
-    lot_url: clean(r.ItemDescURL) ?? "https://www.gsaauctions.gov",
-    raw: r,
+    current_bid: toNumber(f("highBidAmount", "currentBid", "highBid")),
+    start_time: toDate(f("aucStartDt")),
+    end_time: toDate(f("aucEndDt")),
+    status: status(f("auctionStatus")),
+    city: clean(f("propertyCity", "locationCity")),
+    state: clean(f("propertyState", "locationST"))?.toUpperCase() ?? null,
+    zip: clean(f("propertyZip", "locationZip"))?.replace(/null$/i, "") ?? null,
+    agency: clean(f("agencyName", "locationOrg", "saleLocation")),
+    photo_url: clean(f("imageURL", "imageUrl", "image")),
+    lot_url: clean(f("itemDescURL", "itemDescUrl", "lotUrl")) ?? "https://www.gsaauctions.gov",
+    raw: record,
     last_updated: new Date().toISOString(),
   };
 }
@@ -91,7 +122,7 @@ export async function run() {
     return 0;
   }
 
-  console.log("GSA sample record:", JSON.stringify(records[0]).slice(0, 2500));
+  console.log("GSA record fields:", Object.keys(records[0]).join(", "));
 
   // De-duplicate by id (keep the last occurrence).
   const lots = [...new Map(records.map(toLot).map((l) => [l.id, l])).values()];

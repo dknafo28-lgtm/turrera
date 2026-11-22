@@ -54,3 +54,24 @@ test("categorize", () => {
   assert.equal(categorize("2015 Chevrolet Impala sedan"), "cars");
   assert.equal(categorize("Office chairs, lot of 20"), "other");
 });
+
+test("toLot handles the live API's camelCase fields", () => {
+  const lot = toLot({
+    saleNo: "2-1-QSC-I-27-039",
+    lotNo: "001",
+    aucEndDt: "2026-12-01",
+    itemName: "2012 Flat Rack Trailer",
+    propertyCity: "Roswell",
+    propertyState: "NM",
+    locationZip: "85007null",
+    auctionStatus: "Active",
+    lotInfo: "<p><strong>NOTE</strong> Tires need&nbsp;replacing</p>",
+    locationOrg: "Arizona Federal Surplus Property",
+  });
+  assert.equal(lot.id, "gsa:2-1-QSC-I-27-039:001");
+  assert.equal(lot.status, "active");
+  assert.equal(lot.state, "NM");
+  assert.equal(lot.zip, "85007");
+  assert.equal(lot.description, "NOTE Tires need replacing");
+  assert.equal(lot.category, "equipment");
+});
