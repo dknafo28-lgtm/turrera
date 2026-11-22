@@ -1,11 +1,8 @@
 import { connect } from "../collectors/mcp.mjs";
 const m = await connect("https://ai.municibid.com/mcp");
-const s = await m.call("search_auctions", { state: "FL", sort: "closing_soon", limit: 3 });
-console.log("SEARCH", JSON.stringify(s).slice(0, 3000));
-const id = s.results?.[0]?.auction_id;
-const d = await m.call("get_auction_details", { auction_id: id });
-console.log("DETAILS", JSON.stringify(d).slice(0, 5000));
-const all = await m.call("search_auctions", { sort: "closing_soon", limit: 50 });
-console.log("ALL COUNT", all.result_count, all.results?.length, JSON.stringify(all.notes ?? []).slice(0, 500));
-const cats = {}; for (const r of all.results ?? []) cats[r.category] = (cats[r.category] ?? 0) + 1;
-console.log("CATS", JSON.stringify(cats));
+for (const args of [{}, { limit: 50 }, { state: "PA", limit: 5 }, { query: "truck", limit: 5 }, { sort: "newest", limit: 5 }]) {
+  const s = await m.call("search_auctions", args);
+  console.log("SEARCH", JSON.stringify(args), "count", s.result_count, "fresh", JSON.stringify(s.data_freshness), "notes", JSON.stringify(s.notes), "first", JSON.stringify(s.results?.[0] ?? null).slice(0, 800));
+}
+const c = await m.call("get_sold_comps", { query: "truck" }).catch((e) => ({ err: String(e) }));
+console.log("COMPS", JSON.stringify(c).slice(0, 600));
