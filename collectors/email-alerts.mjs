@@ -55,9 +55,15 @@ Rules:
 - "details" is any other text the email gives about that item (condition, mileage, seller), else null.
 - If the email has no listings, return {"listings": []}.`;
 
-export function emailToPrompt({ subject, from, date, text, links }) {
+export function emailToPrompt({ subject, from, date, text, links, images = [] }) {
   const linkList = links.slice(0, 200).map((l) => `- ${l.text || "(no text)"} -> ${l.href}`).join("\n");
-  return `From: ${from}\nDate: ${date}\nSubject: ${subject}\n\nEmail text:\n${(text ?? "").slice(0, 12000)}\n\nLinks in the email:\n${linkList}`;
+  const imageList = images.slice(0, 100).map((src) => `- ${src}`).join("\n");
+  return `From: ${from}\nDate: ${date}\nSubject: ${subject}\n\nEmail text:\n${(text ?? "").slice(0, 12000)}\n\nLinks in the email:\n${linkList}\n\nImages in the email, in order:\n${imageList || "(none)"}`;
+}
+
+export function extractImages(html) {
+  return [...new Set([...(html ?? "").matchAll(/<img\b[^>]*src=["'](https?:\/\/[^"']+)["']/gi)].map((m) => m[1].replace(/&amp;/g, "&")))]
+    .filter((src) => !/logo|icon|spacer|pixel|track|facebook|twitter|linkedin|instagram|youtube/i.test(src));
 }
 
 export function parseListings(reply) {
@@ -150,7 +156,7 @@ export async function run() {
       const site = siteFor({ from, html, text: mail.text ?? "" });
       if (!site) continue; // not an alert we know; leave it unread for you
       const reply = await askClaude(apiKey, emailToPrompt({
-        subject: mail.subject ?? "", from, date: mail.date?.toISOString() ?? "", text: mail.text ?? "", links: extractLinks(html),
+        subject: mail.subject ?? "", from, date: mail.date?.toISOString() ?? "", text: mail.text ?? "", links: extractLinks(html), images: extractImages(html),
       }));
       const lots = [...new Map(parseListings(reply).map((l) => toLot(site, l)).map((l) => [l.id, l])).values()];
       if (lots.length) {

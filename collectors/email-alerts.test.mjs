@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { siteFor, listingId, parseListings, toLot, extractLinks, SITES } from "./email-alerts.mjs";
+import { siteFor, listingId, parseListings, toLot, extractLinks, extractImages, SITES } from "./email-alerts.mjs";
 
 test("siteFor recognises the three alert senders", () => {
   assert.equal(siteFor({ from: "GovDeals <noreply@govdeals.com>" }).source, "govdeals");
@@ -34,4 +34,8 @@ test("parseListings keeps only usable entries", () => {
 test("extractLinks reads anchors", () => {
   const links = extractLinks('<a href="https://www.govdeals.com/asset/1/2"><b>2016 Ford</b>&nbsp;F-150</a> <a href="mailto:a@b.c">x</a>');
   assert.deepEqual(links, [{ href: "https://www.govdeals.com/asset/1/2", text: "2016 Ford F-150" }]);
+});
+
+test("extractImages skips logos and tracking pixels", () => {
+  assert.deepEqual(extractImages('<img src="https://x.com/logo.png"><img src="https://webassets.govdeals.com/photos/1.jpg"><img src="https://t.co/pixel.gif">'), ["https://webassets.govdeals.com/photos/1.jpg"]);
 });
