@@ -57,7 +57,8 @@ export function parseListingPage(html, { fallback = "other", now = Date.now() } 
     const priceText = text(block.match(/id="val_[^"]*"[^>]*>([\s\S]*?)<\/b>/)?.[1] ?? "");
     const price = Number(priceText.replace(/[^0-9.]/g, ""));
     const state = text(block.match(/class="auction-item-state"[^>]*>([\s\S]*?)<\/span>/)?.[1] ?? "") || null;
-    const photo = block.match(/<img[^>]*src="([^"]+)"/)?.[1] ?? null;
+    // The listing page uses a tiny 68x90 thumbnail ("thumb-b"); "thumb-a" serves the full-size photo.
+    const photo = block.match(/<img[^>]*src="([^"]+)"/)?.[1]?.replace("/thumb-b/", "/thumb-a/") ?? null;
     const timeLeftText = text(block.match(/id="timeLeftValue[^"]*"[^>]*>([\s\S]*?)<\/span>/)?.[1] ?? "");
     const left = parseTimeLeft(timeLeftText);
     const guessed = categorize(title);

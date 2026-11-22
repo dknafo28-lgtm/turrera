@@ -66,7 +66,7 @@ test("parseListingPage reads cards", () => {
   assert.equal(a.state, "MN");
   assert.equal(a.end_time, new Date(now + (19 * 60 + 13) * 60_000).toISOString());
   assert.equal(a.lot_url, "https://www.publicsurplus.com/sms/auction/view?auc=4128203");
-  assert.match(a.photo_url, /cloudfront/);
+  assert.match(a.photo_url, /cloudfront.*\/thumb-a\//);
   assert.equal(b.title, "1999- Ford F-150");
   assert.equal(b.state, "FL");
   assert.equal(b.current_bid, 400);

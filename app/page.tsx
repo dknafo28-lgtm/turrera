@@ -131,7 +131,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           <li key={lot.id} className="card">
             <a href={lot.lot_url ?? "#"} target="_blank" rel="noopener noreferrer">
               <div className="thumb">
-                {lot.photo_url ? <img src={lot.photo_url} alt="" loading="lazy" /> : <span>No photo</span>}
+                {lot.photo_url ? <img src={lot.photo_url} alt="" loading="lazy" decoding="async" /> : <span>No photo</span>}
               </div>
               <div className="body">
                 <h2>{lot.title}</h2>
