@@ -91,6 +91,8 @@ export async function run() {
     return 0;
   }
 
+  console.log("GSA sample record:", JSON.stringify(records[0]).slice(0, 2500));
+
   // De-duplicate by id (keep the last occurrence).
   const lots = [...new Map(records.map(toLot).map((l) => [l.id, l])).values()];
   const saved = await upsertLots(getWriteClient(), lots);
