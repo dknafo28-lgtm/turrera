@@ -57,9 +57,11 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
   gap: 14px;
 }
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.card a { color: inherit; text-decoration: none; display: block; height: 100%; }
+.card { display: flex; flex-direction: column; }
+.card a { color: inherit; text-decoration: none; }
+.body h2 a:hover { color: var(--accent); }
 .card:hover { border-color: var(--accent); }
-.thumb { aspect-ratio: 4 / 3; background: #eceff3; display: grid; place-items: center; color: var(--muted); }
+.thumb { aspect-ratio: 4 / 3; background: #eceff3; display: grid; place-items: center; color: var(--muted); overflow: hidden; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .body { padding: 12px; }
 .body h2 { font-size: 1rem; margin: 0 0 6px; line-height: 1.3; }
@@ -94,8 +96,8 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
   main { padding: 12px 10px 32px; }
   .site-header { padding: 12px 14px; }
   .grid { grid-template-columns: 1fr; gap: 8px; }
-  .card a { display: grid; grid-template-columns: 104px 1fr; }
-  .thumb { aspect-ratio: auto; height: 100%; min-height: 104px; }
+  .card { display: grid; grid-template-columns: 104px 1fr; }
+  .thumb { aspect-ratio: auto; height: 100%; min-height: 104px; align-self: stretch; }
   .body { padding: 8px 10px; }
   .body h2 { font-size: 0.9rem; margin-bottom: 3px;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -105,6 +107,19 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
   .value { font-size: 0.76rem; margin: 2px 0; }
   .value .range { display: none; }
   .tag { display: none; }
-  .ease-note { display: none; }
   .group-title { margin: 16px 0 8px; font-size: 0.95rem; }
 }
+
+/* Tap-to-expand condition and resale notes */
+.more { margin: 6px 0 4px; }
+.more summary { list-style: none; cursor: pointer; }
+.more summary::-webkit-details-marker { display: none; }
+.more .condition { margin: 0; }
+.more-label::after { content: "Show more"; color: var(--accent); font-size: 0.78rem; font-weight: 600; }
+.more[open] .more-label::after { content: "Show less"; }
+.more[open] .condition { display: block; -webkit-line-clamp: unset; overflow: visible; }
+.more-body { font-size: 0.8rem; margin-top: 4px; }
+.more-body p { margin: 0 0 4px; }
+.more-body a { color: var(--accent); font-weight: 600; }
+.muted { color: var(--muted); }
+.card > .body > .ease { margin-top: 2px; }

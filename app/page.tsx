@@ -144,32 +144,34 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
       <ul className="grid">
         {section.lots.map((lot) => (
           <li key={lot.id} className="card">
-            <a href={lot.lot_url ?? "#"} target="_blank" rel="noopener noreferrer">
-              <div className="thumb">
-                {lot.photo_url ? <img src={lot.photo_url} alt="" loading="lazy" decoding="async" /> : <span>No photo</span>}
-              </div>
-              <div className="body">
-                <h2>{lot.title}</h2>
-                {lot.condition ? <p className="condition">{lot.condition}</p> : null}
-                <p className="price">{money(lot.current_bid)}</p>
-                {lot.est_value ? (
-                  <p className="value">
-                    Market value {money(lot.est_low)}–{money(lot.est_high)}
-                    <span className="range"> {lot.value_source === "ebay" ? `(${lot.comps_count} eBay listings)` : "(AI estimate)"}</span>
-                    {lot.spread !== null ? <span className={lot.spread > 0 ? "spread up" : "spread down"}>{lot.spread > 0 ? "+" : ""}{money(lot.spread)} vs. current bid</span> : null}
-                  </p>
-                ) : null}
-                {lot.sell_ease ? (
-                  <p className="ease-line">
-                    <span className={`ease ease-${lot.sell_ease}`}>{EASE_LABEL[lot.sell_ease] ?? lot.sell_ease}</span>
-                    {lot.sell_note ? <span className="ease-note"> {lot.sell_note}</span> : null}
-                  </p>
-                ) : null}
-                <p className="meta">{[lot.city, lot.state].filter(Boolean).join(", ") || "Location not listed"}</p>
-                <p className="meta">{timeLeft(lot.end_time)} · {SOURCES[lot.source] ?? lot.source}</p>
-                {lot.category ? <span className="tag">{lot.category}</span> : null}
-              </div>
+            <a className="thumb" href={lot.lot_url ?? "#"} target="_blank" rel="noopener noreferrer">
+              {lot.photo_url ? <img src={lot.photo_url} alt="" loading="lazy" decoding="async" /> : <span>No photo</span>}
             </a>
+            <div className="body">
+              <h2><a href={lot.lot_url ?? "#"} target="_blank" rel="noopener noreferrer">{lot.title}</a></h2>
+              <p className="price">{money(lot.current_bid)}</p>
+              {lot.est_value ? (
+                <p className="value">
+                  Market value {money(lot.est_low)}–{money(lot.est_high)}
+                  {lot.spread !== null ? <span className={lot.spread > 0 ? "spread up" : "spread down"}>{lot.spread > 0 ? "+" : ""}{money(lot.spread)} vs. current bid</span> : null}
+                </p>
+              ) : null}
+              {lot.sell_ease ? <span className={`ease ease-${lot.sell_ease}`}>{EASE_LABEL[lot.sell_ease] ?? lot.sell_ease}</span> : null}
+              {lot.condition || lot.sell_note ? (
+                <details className="more">
+                  <summary>
+                    <span className="condition">{lot.condition ?? lot.sell_note}</span>
+                    <span className="more-label" aria-hidden="true"></span>
+                  </summary>
+                  <div className="more-body">
+                    {lot.condition && lot.sell_note ? <p><strong>Resale:</strong> {lot.sell_note}</p> : null}
+                    {lot.est_value ? <p className="muted">Value source: {lot.value_source === "ebay" ? `${lot.comps_count} similar eBay listings` : "AI estimate from the listing"}</p> : null}
+                    <a href={lot.lot_url ?? "#"} target="_blank" rel="noopener noreferrer">View full auction →</a>
+                  </div>
+                </details>
+              ) : null}
+              <p className="meta">{[lot.city, lot.state].filter(Boolean).join(", ") || "Location not listed"} · {timeLeft(lot.end_time)} · {SOURCES[lot.source] ?? lot.source}</p>
+            </div>
           </li>
         ))}
       </ul>
