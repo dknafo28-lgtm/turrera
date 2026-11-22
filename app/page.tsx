@@ -217,7 +217,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
             </div>
             <label className="field field-check">
               <input type="checkbox" name="deal" value="1" defaultChecked={p.deal === "1"} />
-              <span>Only lots under market value</span>
+              <span>Under market value only</span>
             </label>
             <label className="field">
               <span>Sort</span>

@@ -23,7 +23,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </footer>
         <script
           dangerouslySetInnerHTML={{
-            __html: `document.addEventListener("change", function (e) {
+            __html: `document.addEventListener("error", function (e) {
+  var img = e.target;
+  if (img && img.tagName === "IMG" && img.parentElement && img.parentElement.classList.contains("lot-photo")) img.parentElement.classList.add("photo-missing");
+}, true);
+document.querySelectorAll(".lot-photo img").forEach(function (img) {
+  if (img.complete && img.naturalWidth === 0) img.parentElement.classList.add("photo-missing");
+});
+document.addEventListener("change", function (e) {
   var el = e.target;
   if (!el || !el.name || !el.form || !el.form.classList.contains("toolbar")) return;
   var drawer = document.getElementById("filters-toggle");

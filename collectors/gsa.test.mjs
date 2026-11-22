@@ -75,3 +75,8 @@ test("toLot handles the live API's camelCase fields", () => {
   assert.equal(lot.description, "NOTE Tires need replacing");
   assert.equal(lot.category, "equipment");
 });
+
+test("category comes from the title, not pickup instructions in the description", () => {
+  const lot = toLot({ saleNo: "S", lotNo: 1, itemName: "Inconel 625 Scrap", lotInfo: "Buyer must bring a truck and forklift for removal." });
+  assert.equal(lot.category, "other");
+});

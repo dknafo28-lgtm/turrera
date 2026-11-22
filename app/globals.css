@@ -89,9 +89,9 @@ img { display: block; }
   font: inherit; font-size: 0.95rem; color: var(--ink); background: var(--paper);
   border: 1px solid var(--line); border-radius: 5px; padding: 8px 10px; min-height: 40px;
 }
-.field select { min-width: 132px; }
+.field select { min-width: 118px; }
 .field-price > div { display: flex; gap: 6px; }
-.field-price input { width: 100px; }
+.field-price input { width: 86px; }
 .field-check { flex-direction: row; align-items: center; gap: 8px; min-height: 40px; color: var(--ink); font-size: 0.95rem; }
 .field-check input { width: 18px; height: 18px; accent-color: var(--go); }
 .apply {
@@ -137,6 +137,12 @@ img { display: block; }
 .lot-photo { position: relative; display: block; aspect-ratio: 4 / 3; background: #dde2e7; }
 .lot-photo img { width: 100%; height: 100%; object-fit: cover; }
 .lot-nophoto { display: grid; place-items: center; height: 100%; color: var(--steel); font-size: 0.9rem; }
+
+.lot-photo.photo-missing img { display: none; }
+.lot-photo.photo-missing::after {
+  content: "Photo on the auction site"; position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--steel); font-size: 0.85rem; text-align: center; padding: 0 8px;
+}
 
 /* The auction lot tag: the one loud element on the card. */
 .lot-tag {
