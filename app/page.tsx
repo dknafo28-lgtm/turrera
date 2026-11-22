@@ -1,20 +1,12 @@
-import { getReadClient, type Lot } from "@/lib/supabase";
+import type { Lot } from "@/lib/supabase";
+import {
+  CATEGORIES, EASE, ENDING, PAGE_SIZE, SORTS, SOURCES, STATES,
+  categoryCounts, loadLots, type Params,
+} from "@/lib/lots";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORIES = ["boats", "trucks", "buses", "cars", "equipment", "golf carts", "other"];
-const STATES = [
-  "AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
-  "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","PR",
-  "RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY",
-];
-const SORTS: Record<string, { label: string; column: string; ascending: boolean }> = {
-  ending: { label: "Ending soonest", column: "end_time", ascending: true },
-  newest: { label: "Newest listed", column: "first_seen", ascending: false },
-  price_low: { label: "Price: low to high", column: "current_bid", ascending: true },
-  price_high: { label: "Price: high to low", column: "current_bid", ascending: false },
-  spread: { label: "Biggest potential profit", column: "spread", ascending: false },
-};
+const EASE_LABEL: Record<string, string> = { easy: "Easy to sell", moderate: "Moderate to sell", hard: "Hard to sell" };
 
 const GROUPS = [
   { label: "Ending in the next 6 hours", until: 6 },
@@ -24,161 +16,255 @@ const GROUPS = [
   { label: "Ending later", until: Infinity },
 ];
 
+function money(n: number | null | undefined) {
+  if (n === null || n === undefined) return null;
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
+function short(n: number | null | undefined) {
+  if (n === null || n === undefined) return "";
+  if (n >= 1000) return `$${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "")}k`;
+  return `$${Math.round(n)}`;
+}
+
+function timeLeft(end: string | null) {
+  if (!end) return { text: "No end date", soon: false };
+  const ms = new Date(end).getTime() - Date.now();
+  if (ms <= 0) return { text: "Ended", soon: false };
+  const mins = Math.floor(ms / 60_000);
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
+  if (hours < 1) return { text: `${mins}m left`, soon: true };
+  if (hours < 24) return { text: `${hours}h ${mins % 60}m left`, soon: true };
+  return { text: `${days}d ${hours % 24}h left`, soon: false };
+}
+
 function groupByEnding(lots: Lot[]) {
-  const groups = GROUPS.map((g) => ({ ...g, lots: [] as Lot[] }));
+  const groups = GROUPS.map((g) => ({ label: g.label, until: g.until, lots: [] as Lot[] }));
   const noDate: Lot[] = [];
   for (const lot of lots) {
     if (!lot.end_time) { noDate.push(lot); continue; }
     const hours = (new Date(lot.end_time).getTime() - Date.now()) / 3_600_000;
     groups.find((g) => hours <= g.until)!.lots.push(lot);
   }
-  return [...groups, { label: "End date not listed", until: Infinity, lots: noDate }].filter((g) => g.lots.length);
+  return [...groups, { label: "No end date listed", until: Infinity, lots: noDate }].filter((g) => g.lots.length);
 }
 
-const SOURCES: Record<string, string> = { gsa: "GSA Auctions", publicsurplus: "Public Surplus" };
-
-type Params = { q?: string; category?: string; state?: string; max?: string; sort?: string; ending?: string; source?: string; ease?: string };
-
-const EASE_LABEL: Record<string, string> = { easy: "Easy to sell", moderate: "Moderate to sell", hard: "Hard to sell" };
-
-function money(n: number | null) {
-  if (n === null || n === undefined) return "No bids yet";
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-}
-
-function timeLeft(end: string | null) {
-  if (!end) return "End date not listed";
-  const ms = new Date(end).getTime() - Date.now();
-  if (ms <= 0) return "Ended";
-  const hours = Math.floor(ms / 3_600_000);
-  if (hours < 24) return `${hours}h left`;
-  return `${Math.floor(hours / 24)}d ${hours % 24}h left`;
-}
-
-async function loadLots(p: Params): Promise<{ lots: Lot[]; error?: string }> {
-  const supabase = getReadClient();
-  if (!supabase) return { lots: [], error: "Database not connected yet — add the Supabase keys in Vercel." };
-
-  const base = "id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen";
-  const values = "est_value,est_low,est_high,comps_count,spread,condition";
-  // Newest columns first; if the database hasn't been updated yet, fall back to older column sets.
-  const attempts = [`${base},${values},sell_ease,sell_note,value_source`, `${base},${values}`, base];
-  let last: { lots: Lot[]; error?: string } = { lots: [] };
-  for (const [i, columns] of attempts.entries()) {
-    const params = i === attempts.length - 1 && p.sort === "spread" ? { ...p, sort: "ending" } : p;
-    last = await runQuery(supabase, i === 0 ? params : { ...params, ease: undefined }, columns);
-    if (!last.error || !/does not exist|spread|sell_ease/i.test(last.error)) return last;
+// Builds a link to this page with some parameters changed (undefined removes one). Resets to page 1 unless a page is given.
+function href(p: Params, changes: Partial<Params>) {
+  const next: Record<string, string> = {};
+  for (const [k, v] of Object.entries({ ...p, page: undefined, ...changes })) {
+    if (v !== undefined && v !== "") next[k] = String(v);
   }
-  return last;
+  const qs = new URLSearchParams(next).toString();
+  return qs ? `/?${qs}` : "/";
 }
 
-async function runQuery(supabase: NonNullable<ReturnType<typeof getReadClient>>, p: Params, columns: string): Promise<{ lots: Lot[]; error?: string }> {
-  const sort = SORTS[p.sort ?? "ending"] ?? SORTS.ending;
-  let query = supabase
-    .from("lots")
-    .select(columns)
-    .or(`end_time.gte.${new Date().toISOString()},end_time.is.null`);
+function activeFilters(p: Params) {
+  const pills: { label: string; remove: Partial<Params> }[] = [];
+  if (p.q) pills.push({ label: `“${p.q}”`, remove: { q: undefined } });
+  const cat = CATEGORIES.find((c) => c.key === p.category);
+  if (cat) pills.push({ label: cat.label, remove: { category: undefined } });
+  if (p.state) pills.push({ label: p.state, remove: { state: undefined } });
+  if (p.source && SOURCES[p.source]) pills.push({ label: SOURCES[p.source], remove: { source: undefined } });
+  if (p.ending && ENDING[p.ending]) pills.push({ label: `Ending in the ${ENDING[p.ending].label.toLowerCase()}`, remove: { ending: undefined } });
+  if (p.ease && EASE[p.ease]) pills.push({ label: EASE[p.ease], remove: { ease: undefined } });
+  if (p.deal === "1") pills.push({ label: "Under market value", remove: { deal: undefined } });
+  if (p.min) pills.push({ label: `From $${Number(p.min).toLocaleString()}`, remove: { min: undefined } });
+  if (p.max) pills.push({ label: `Up to $${Number(p.max).toLocaleString()}`, remove: { max: undefined } });
+  return pills;
+}
 
-  // Every word must appear in the title or description, in any order ("ford truck" finds "Ford F-250 pickup truck").
-  const words = (p.q ?? "").toLowerCase().replace(/[^\p{L}\p{N}\s\-.]/gu, " ").split(/\s+/).filter(Boolean).slice(0, 6);
-  for (const w of words) query = query.or(`title.ilike."%${w}%",description.ilike."%${w}%"`);
-  if (p.category && CATEGORIES.includes(p.category)) query = query.eq("category", p.category);
-  if (p.state && STATES.includes(p.state)) query = query.eq("state", p.state);
-  if (p.source && p.source in SOURCES) query = query.eq("source", p.source);
-  if (p.ease === "easy") query = query.eq("sell_ease", "easy");
-  if (p.ease === "moderate") query = query.in("sell_ease", ["easy", "moderate"]);
-  const max = Number(p.max);
-  if (p.max && Number.isFinite(max) && max > 0) query = query.lte("current_bid", max);
-  if (p.ending === "48h") query = query.lte("end_time", new Date(Date.now() + 48 * 3_600_000).toISOString());
-
-  const { data, error } = await query
-    .order(sort.column, { ascending: sort.ascending, nullsFirst: false })
-    .limit(sort.column === "end_time" ? 300 : 120);
-  if (error) return { lots: [], error: error.message };
-  return { lots: (data ?? []) as unknown as Lot[] };
+function LotCard({ lot }: { lot: Lot }) {
+  const left = timeLeft(lot.end_time);
+  const url = lot.lot_url ?? "#";
+  const hasValue = lot.est_value !== null && lot.est_value !== undefined;
+  return (
+    <li className="lot">
+      <a className="lot-photo" href={url} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true">
+        {lot.photo_url ? <img src={lot.photo_url} alt="" loading="lazy" decoding="async" /> : <span className="lot-nophoto">No photo</span>}
+        <span className={left.soon ? "lot-tag lot-tag-soon" : "lot-tag"}>{left.text}</span>
+      </a>
+      <div className="lot-body">
+        <h2 className="lot-title"><a href={url} target="_blank" rel="noopener noreferrer">{lot.title}</a></h2>
+        <div className="lot-numbers">
+          <div>
+            <span className="lot-label">Current bid</span>
+            <span className="lot-figure">{money(lot.current_bid) ?? "No bids"}</span>
+          </div>
+          {hasValue ? (
+            <div>
+              <span className="lot-label">Worth</span>
+              <span className="lot-figure">{short(lot.est_low)}–{short(lot.est_high)}</span>
+            </div>
+          ) : null}
+        </div>
+        {hasValue && lot.spread !== null ? (
+          <p className={lot.spread > 0 ? "lot-deal lot-deal-up" : "lot-deal lot-deal-down"}>
+            {lot.spread > 0 ? `${money(lot.spread)} under market value` : `${money(-lot.spread)} over market value`}
+          </p>
+        ) : null}
+        {lot.sell_ease ? <span className={`ease ease-${lot.sell_ease}`}>{EASE_LABEL[lot.sell_ease] ?? lot.sell_ease}</span> : null}
+        {lot.condition || lot.sell_note ? (
+          <details className="lot-more">
+            <summary>
+              <span className="lot-condition">{lot.condition ?? lot.sell_note}</span>
+              <span className="lot-more-toggle" />
+            </summary>
+            <div className="lot-more-body">
+              {lot.condition && lot.sell_note ? <p><strong>Resale:</strong> {lot.sell_note}</p> : null}
+              {hasValue ? (
+                <p className="muted">
+                  {lot.value_source === "ebay" ? `Value from ${lot.comps_count} similar eBay listings.` : "Value is an AI estimate from the listing. Check real sales before bidding."}
+                </p>
+              ) : null}
+              <a href={url} target="_blank" rel="noopener noreferrer">Open the full auction listing</a>
+            </div>
+          </details>
+        ) : null}
+        <p className="lot-foot">
+          <span>{[lot.city, lot.state].filter(Boolean).join(", ") || "Location not listed"}</span>
+          <span className="lot-source">{SOURCES[lot.source] ?? lot.source}</span>
+        </p>
+      </div>
+    </li>
+  );
 }
 
 export default async function Home({ searchParams }: { searchParams: Promise<Params> }) {
   const p = await searchParams;
-  const { lots, error } = await loadLots(p);
-  const sortKey = p.sort ?? "ending";
+  const [{ lots, total, error }, counts] = await Promise.all([loadLots(p), categoryCounts(p)]);
+  const page = Math.max(1, Number(p.page) || 1);
+  const sortKey = SORTS[p.sort ?? ""] ? (p.sort as string) : "ending";
   const sections = sortKey === "ending" ? groupByEnding(lots) : [{ label: "", until: Infinity, lots }];
+  const pills = activeFilters(p);
+  const allCount = Object.values(counts).reduce((a, b) => a + b, 0);
+  const extraFilters = pills.filter((x) => !("category" in x.remove) && !("q" in x.remove)).length;
+  const from = total ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const to = Math.min(page * PAGE_SIZE, total);
 
   return (
     <>
-      <form className="filters" method="get">
-        <input type="search" name="q" placeholder="Search: Ford F-250, pontoon boat, excavator…" defaultValue={p.q ?? ""} />
-        <select name="category" defaultValue={p.category ?? ""}>
-          <option value="">All categories</option>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>)}
-        </select>
-        <select name="state" defaultValue={p.state ?? ""}>
-          <option value="">All states</option>
-          {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select name="source" defaultValue={p.source ?? ""}>
-          <option value="">All sites</option>
-          {Object.entries(SOURCES).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-        </select>
-        <select name="ease" defaultValue={p.ease ?? ""}>
-          <option value="">Any resale ease</option>
-          <option value="easy">Easy to sell</option>
-          <option value="moderate">Easy or moderate</option>
-        </select>
-        <input type="number" name="max" min="0" step="100" placeholder="Max price $" defaultValue={p.max ?? ""} />
-        <select name="ending" defaultValue={p.ending ?? ""}>
-          <option value="">Any end date</option>
-          <option value="48h">Ending in 48 hours</option>
-        </select>
-        <select name="sort" defaultValue={p.sort ?? "ending"}>
-          {Object.entries(SORTS).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}
-        </select>
-        <button type="submit">Search</button>
-      </form>
+      <header className="masthead">
+        <div className="masthead-inner">
+          <a href="/" className="wordmark">Turrera</a>
+          <p className="masthead-note">Government surplus from GSA Auctions and Public Surplus in one place, refreshed every 4 hours.</p>
+          <form className="search" method="get" action="/" role="search">
+            {Object.entries(p).filter(([k, v]) => k !== "q" && k !== "page" && v).map(([k, v]) => (
+              <input key={k} type="hidden" name={k} value={String(v)} />
+            ))}
+            <label htmlFor="q" className="visually-hidden">Search lots</label>
+            <input id="q" type="search" name="q" placeholder="Try F-250, pontoon, Bobcat, school bus" defaultValue={p.q ?? ""} autoComplete="off" />
+            <button type="submit">Search</button>
+          </form>
+        </div>
+      </header>
 
-      {error ? <p className="notice">{error}</p> : <p className="count">{lots.length >= 120 ? `Showing first ${lots.length} lots` : `${lots.length} lots`}</p>}
-
-      {sections.map((section) => (
-      <section key={section.label || "all"}>
-        {section.label ? <h3 className="group-title">{section.label} <span>({section.lots.length})</span></h3> : null}
-      <ul className="grid">
-        {section.lots.map((lot) => (
-          <li key={lot.id} className="card">
-            <a className="thumb" href={lot.lot_url ?? "#"} target="_blank" rel="noopener noreferrer">
-              {lot.photo_url ? <img src={lot.photo_url} alt="" loading="lazy" decoding="async" /> : <span>No photo</span>}
-            </a>
-            <div className="body">
-              <h2><a href={lot.lot_url ?? "#"} target="_blank" rel="noopener noreferrer">{lot.title}</a></h2>
-              <p className="price">{money(lot.current_bid)}</p>
-              {lot.est_value ? (
-                <p className="value">
-                  Market value {money(lot.est_low)}–{money(lot.est_high)}
-                  {lot.spread !== null ? <span className={lot.spread > 0 ? "spread up" : "spread down"}>{lot.spread > 0 ? "+" : ""}{money(lot.spread)} vs. current bid</span> : null}
-                </p>
-              ) : null}
-              {lot.sell_ease ? <span className={`ease ease-${lot.sell_ease}`}>{EASE_LABEL[lot.sell_ease] ?? lot.sell_ease}</span> : null}
-              {lot.condition || lot.sell_note ? (
-                <details className="more">
-                  <summary>
-                    <span className="condition">{lot.condition ?? lot.sell_note}</span>
-                    <span className="more-label" aria-hidden="true"></span>
-                  </summary>
-                  <div className="more-body">
-                    {lot.condition && lot.sell_note ? <p><strong>Resale:</strong> {lot.sell_note}</p> : null}
-                    {lot.est_value ? <p className="muted">Value source: {lot.value_source === "ebay" ? `${lot.comps_count} similar eBay listings` : "AI estimate from the listing"}</p> : null}
-                    <a href={lot.lot_url ?? "#"} target="_blank" rel="noopener noreferrer">View full auction →</a>
-                  </div>
-                </details>
-              ) : null}
-              <p className="meta">{[lot.city, lot.state].filter(Boolean).join(", ") || "Location not listed"} · {timeLeft(lot.end_time)} · {SOURCES[lot.source] ?? lot.source}</p>
-            </div>
-          </li>
+      <nav className="cats" aria-label="Categories">
+        <a href={href(p, { category: undefined })} className={!p.category ? "cat cat-on" : "cat"} aria-current={!p.category ? "page" : undefined}>
+          All <span>{allCount.toLocaleString()}</span>
+        </a>
+        {CATEGORIES.map((c) => (
+          <a key={c.key} href={href(p, { category: c.key })} className={p.category === c.key ? "cat cat-on" : "cat"} aria-current={p.category === c.key ? "page" : undefined}>
+            {c.label} <span>{(counts[c.key] ?? 0).toLocaleString()}</span>
+          </a>
         ))}
-      </ul>
-      </section>
-      ))}
+      </nav>
 
-      {!error && lots.length === 0 ? <p className="notice">No lots match those filters yet.</p> : null}
+      <main className="page">
+        <form className="toolbar" method="get" action="/">
+          {p.q ? <input type="hidden" name="q" value={p.q} /> : null}
+          {p.category ? <input type="hidden" name="category" value={p.category} /> : null}
+          <input type="checkbox" id="filters-toggle" className="filters-toggle" />
+          <label htmlFor="filters-toggle" className="filters-button">
+            Filters{extraFilters ? ` (${extraFilters})` : ""}
+          </label>
+          <div className="filters">
+            <label className="field">
+              <span>Ending</span>
+              <select name="ending" defaultValue={p.ending ?? ""}>
+                <option value="">Any time</option>
+                {Object.entries(ENDING).map(([k, e]) => <option key={k} value={k}>{e.label}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>State</span>
+              <select name="state" defaultValue={p.state ?? ""}>
+                <option value="">All states</option>
+                {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Auction site</span>
+              <select name="source" defaultValue={p.source ?? ""}>
+                <option value="">All sites</option>
+                {Object.entries(SOURCES).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Resale</span>
+              <select name="ease" defaultValue={p.ease ?? ""}>
+                <option value="">Any</option>
+                {Object.entries(EASE).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              </select>
+            </label>
+            <div className="field field-price">
+              <span>Current bid</span>
+              <div>
+                <input type="number" name="min" min="0" step="100" placeholder="Min $" defaultValue={p.min ?? ""} aria-label="Minimum current bid" />
+                <input type="number" name="max" min="0" step="100" placeholder="Max $" defaultValue={p.max ?? ""} aria-label="Maximum current bid" />
+              </div>
+            </div>
+            <label className="field field-check">
+              <input type="checkbox" name="deal" value="1" defaultChecked={p.deal === "1"} />
+              <span>Only lots under market value</span>
+            </label>
+            <label className="field">
+              <span>Sort</span>
+              <select name="sort" defaultValue={sortKey}>
+                {Object.entries(SORTS).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}
+              </select>
+            </label>
+            <button type="submit" className="apply">Apply</button>
+          </div>
+        </form>
+
+        {pills.length ? (
+          <div className="pills" aria-label="Active filters">
+            {pills.map((pill) => (
+              <a key={pill.label} href={href(p, pill.remove)} className="pill" aria-label={`Remove filter ${pill.label}`}>
+                {pill.label}<span aria-hidden="true">×</span>
+              </a>
+            ))}
+            <a href="/" className="pill-clear">Clear all</a>
+          </div>
+        ) : null}
+
+        {error ? (
+          <p className="notice">{error}</p>
+        ) : (
+          <p className="count">
+            {total ? `${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} open lots` : "No open lots match these filters. Remove a filter or try a broader search."}
+          </p>
+        )}
+
+        {sections.map((section) => (
+          <section key={section.label || "all"} className="group">
+            {section.label ? <h3 className="group-title">{section.label} <span>{section.lots.length}</span></h3> : null}
+            <ul className="lots">
+              {section.lots.map((lot) => <LotCard key={lot.id} lot={lot} />)}
+            </ul>
+          </section>
+        ))}
+
+        {total > PAGE_SIZE ? (
+          <nav className="pager" aria-label="Pages">
+            {page > 1 ? <a href={href(p, { page: String(page - 1) })}>Previous page</a> : <span />}
+            <span>Page {page} of {Math.ceil(total / PAGE_SIZE)}</span>
+            {to < total ? <a href={href(p, { page: String(page + 1) })}>Next page</a> : <span />}
+          </nav>
+        ) : null}
+      </main>
     </>
   );
 }

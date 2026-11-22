@@ -1,0 +1,38 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [redesign]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx next build
+      - name: Render pages against real data
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          for url in "/" "/?q=ford+truck" "/?category=boats" "/?category=trucks&sort=spread" "/?ease=easy&category=trucks" "/?deal=1" "/?state=FL" "/?min=1000&max=5000&category=cars" "/?ending=24h" "/?source=publicsurplus&page=2" "/?q=zzzzqqq"; do
+            body=$(curl -s "http://localhost:3123$url")
+            echo "URL $url | $(echo "$body" | grep -o 'class="count">[^<]*' | head -1) | $(echo "$body" | grep -o 'class="notice">[^<]*' | head -1) | lots=$(echo "$body" | grep -o 'class="lot"' | wc -l) | pills=$(echo "$body" | grep -o 'class="pill"' | wc -l)"
+          done
+          mkdir -p shots
+          CHROME=$(which google-chrome || which chromium)
+          $CHROME --headless=new --disable-gpu --hide-scrollbars --window-size=1366,2200 --screenshot=shots/desktop.png "http://localhost:3123/" 2>/dev/null
+          $CHROME --headless=new --disable-gpu --hide-scrollbars --window-size=1366,1400 --screenshot=shots/desktop-trucks.png "http://localhost:3123/?category=trucks&sort=spread" 2>/dev/null
+          $CHROME --headless=new --disable-gpu --hide-scrollbars --window-size=390,1700 --user-agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile" --screenshot=shots/mobile.png "http://localhost:3123/?category=trucks" 2>/dev/null
+          ls -la shots
+          echo "SERVER LOG:"; grep -i error /tmp/next.log | head -5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shots
+          path: shots/
