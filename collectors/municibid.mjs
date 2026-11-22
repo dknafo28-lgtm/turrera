@@ -77,7 +77,8 @@ async function fetchAll(client) {
       added++;
     }
     if (results.length < PAGE) break;
-    const last = results[results.length - 1]?.closing_at;
+    const lastRaw = results[results.length - 1]?.closing_at;
+    const last = lastRaw ? new Date(lastRaw).toISOString() : null; // the connector wants UTC ISO times
     if (!last || last === after || added === 0) {
       // Many auctions closing at the same minute: step one second past it so we keep moving.
       const next = last ? new Date(new Date(last).getTime() + 1000).toISOString() : null;
