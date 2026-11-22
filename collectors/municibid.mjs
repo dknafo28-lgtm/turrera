@@ -20,14 +20,12 @@ function toDate(value) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-// The connector serves images through a proxy; use the original full-size file when we can.
+// The connector serves images through its own proxy; link the original file directly.
+// (Municibid only publishes the "_thumbcrop" size, so we keep that name.)
 export function fullImage(url) {
   if (!url) return null;
   try {
-    const u = new URL(url);
-    const inner = u.searchParams.get("url");
-    const src = inner ?? url;
-    return src.replace(/_thumbcrop(\.[a-z]+)$/i, "$1");
+    return new URL(url).searchParams.get("url") ?? url;
   } catch {
     return url;
   }
@@ -97,16 +95,13 @@ async function fetchAll(client) {
   return [...seen.values()];
 }
 
+const decode = (t) =>
+  t.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/[ \t]+/g, " ").trim();
+
 export function detailsToUpdate(d) {
-  const a = d?.auction ?? d ?? {};
-  const description = [a.description, a.condition ? `Condition: ${a.condition}` : null, a.terms ? null : null]
-    .filter(Boolean)
-    .join("\n\n")
-    .trim();
-  const images = (a.images ?? a.photos ?? a.image_urls ?? [])
-    .map((i) => (typeof i === "string" ? i : i?.url ?? i?.image_url))
-    .filter(Boolean)
-    .map(fullImage);
+  const description = typeof d?.description === "string" ? decode(d.description) : null;
+  const images = [d?.media?.primary_image_url, ...(d?.media?.image_urls ?? [])].filter(Boolean).map(fullImage);
   return { description: description || null, photos: [...new Set(images)].slice(0, 30) };
 }
 

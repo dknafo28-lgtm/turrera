@@ -19,7 +19,7 @@ test("toLot maps Municibid search results", () => {
   assert.equal(lot.current_bid, 1500);
   assert.equal(lot.agency, "Township of East Brunswick");
   assert.equal(lot.end_time, "2026-11-23T13:36:00.000Z");
-  assert.equal(lot.photo_url, "https://storagemunicibidpro.blob.core.windows.net/assets/media/b1621d1c.jpg");
+  assert.equal(lot.photo_url, "https://storagemunicibidpro.blob.core.windows.net/assets/media/b1621d1c_thumbcrop.jpg");
 });
 
 test("category falls back to Municibid's own category", () => {
@@ -49,4 +49,14 @@ test("plural Municibid categories still map", () => {
 test("utcNoZone formats times the way the connector accepts", async () => {
   const { utcNoZone } = await import("./municibid.mjs");
   assert.equal(utcNoZone(new Date("2026-11-23T15:25:46-05:00")), "2026-11-23T20:25:46");
+});
+
+test("detailsToUpdate reads description and photos", async () => {
+  const { detailsToUpdate } = await import("./municibid.mjs");
+  const u = detailsToUpdate({
+    description: "Runs&nbsp;well<br>Needs brakes",
+    media: { primary_image_url: "https://ai.municibid.com/api/image?url=https%3A%2F%2Fx.net%2Fa_thumbcrop.jpg", image_urls: ["https://ai.municibid.com/api/image?url=https%3A%2F%2Fx.net%2Fa_thumbcrop.jpg", "https://ai.municibid.com/api/image?url=https%3A%2F%2Fx.net%2Fb_thumbcrop.jpg"] },
+  });
+  assert.equal(u.description, "Runs well\nNeeds brakes");
+  assert.deepEqual(u.photos, ["https://x.net/a_thumbcrop.jpg", "https://x.net/b_thumbcrop.jpg"]);
 });
