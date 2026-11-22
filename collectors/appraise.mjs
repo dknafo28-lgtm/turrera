@@ -56,7 +56,7 @@ async function ask(apiKey, lot) {
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 200,
+        max_tokens: 2000, // room for the model's brief internal reasoning before the answer
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: buildPrompt(lot) }],
       }),

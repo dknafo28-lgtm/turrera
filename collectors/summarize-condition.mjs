@@ -32,7 +32,7 @@ async function summarize(apiKey, lot) {
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 150,
+        max_tokens: 2000, // room for the model's brief internal reasoning before the answer
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: buildPrompt(lot) }],
       }),
