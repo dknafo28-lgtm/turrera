@@ -57,18 +57,24 @@ export async function run() {
     return 0;
   }
   const supabase = getWriteClient();
-  const { data: lots, error } = await supabase
-    .from("lots")
-    .select("id,title,description")
-    .is("condition", null)
-    .not("description", "is", null)
-    .gte("end_time", new Date().toISOString())
-    .order("end_time", { ascending: true })
-    .limit(MAX_PER_RUN);
-  if (error) throw new Error(`Supabase read failed: ${error.message}`);
+  // Vehicles, boats and equipment first; everything else fills any remaining room.
+  const lots = [];
+  for (const wantOther of [false, true]) {
+    if (lots.length >= MAX_PER_RUN) break;
+    let q = supabase
+      .from("lots")
+      .select("id,title,description")
+      .is("condition", null)
+      .not("description", "is", null)
+      .gte("end_time", new Date().toISOString());
+    q = wantOther ? q.eq("category", "other") : q.neq("category", "other");
+    const { data, error } = await q.order("end_time", { ascending: true }).limit(MAX_PER_RUN - lots.length);
+    if (error) throw new Error(`Supabase read failed: ${error.message}`);
+    lots.push(...(data ?? []));
+  }
 
   let done = 0;
-  const queue = [...(lots ?? [])];
+  const queue = [...lots];
   async function worker() {
     while (queue.length) {
       const lot = queue.shift();
@@ -83,7 +89,7 @@ export async function run() {
     }
   }
   await Promise.all(Array.from({ length: PARALLEL }, worker));
-  console.log(`Condition summaries: wrote ${done} of ${lots?.length ?? 0}.`);
+  console.log(`Condition summaries: wrote ${done} of ${lots.length}.`);
   return done;
 }
 

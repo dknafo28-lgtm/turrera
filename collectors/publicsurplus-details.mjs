@@ -34,18 +34,24 @@ export function extractDescription(html) {
 
 export async function run() {
   const supabase = getWriteClient();
-  const { data: lots, error } = await supabase
-    .from("lots")
-    .select("id")
-    .eq("source", "publicsurplus")
-    .is("details_fetched", null)
-    .gte("end_time", new Date().toISOString())
-    .order("end_time", { ascending: true })
-    .limit(MAX_PER_RUN);
-  if (error) throw new Error(`Supabase read failed: ${error.message}`);
+  // Vehicles, boats and equipment first; everything else fills any remaining room.
+  const lots = [];
+  for (const wantOther of [false, true]) {
+    if (lots.length >= MAX_PER_RUN) break;
+    let q = supabase
+      .from("lots")
+      .select("id")
+      .eq("source", "publicsurplus")
+      .is("details_fetched", null)
+      .gte("end_time", new Date().toISOString());
+    q = wantOther ? q.eq("category", "other") : q.neq("category", "other");
+    const { data, error } = await q.order("end_time", { ascending: true }).limit(MAX_PER_RUN - lots.length);
+    if (error) throw new Error(`Supabase read failed: ${error.message}`);
+    lots.push(...(data ?? []));
+  }
 
   let found = 0;
-  for (const [i, lot] of (lots ?? []).entries()) {
+  for (const [i, lot] of lots.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, DELAY_MS));
     const auc = lot.id.split(":")[1];
     let description = null;
@@ -64,7 +70,7 @@ export async function run() {
       .eq("id", lot.id);
     if (upErr) throw new Error(`Supabase update failed: ${upErr.message}`);
   }
-  console.log(`Public Surplus details: checked ${lots?.length ?? 0} item pages, ${found} with a description.`);
+  console.log(`Public Surplus details: checked ${lots.length} item pages, ${found} with a description.`);
   return found;
 }
 
