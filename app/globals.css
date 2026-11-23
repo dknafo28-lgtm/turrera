@@ -536,6 +536,11 @@ button, input, select { font: inherit; color: inherit; }
 .cat-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
 
 /* Services band */
+.why h2 { font-family: var(--display); font-size: 24px; color: var(--navy); }
+.why-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.why-list li { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; border-left: 3px solid var(--ice); }
+.why-list strong { font-size: 16px; color: var(--navy); }
+.why-list span { font-size: 15px; color: var(--ink-2); }
 .services { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; }
 .services-main { background: var(--navy); color: #dce4ef; border-radius: var(--radius); padding: 26px 28px; }
 .services-main h2 { font-family: var(--display); font-size: 26px; color: var(--white); }
@@ -645,6 +650,9 @@ button, input, select { font: inherit; color: inherit; }
   .hero-proof span { font-size: 12px; }
   .cat-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .services { grid-template-columns: 1fr; }
+  .why h2 { font-size: 20px; }
+  .why-list { grid-template-columns: 1fr; gap: 12px; }
+  .why-list span { font-size: 14px; }
   .services-main { margin: 0 -14px; border-radius: 0; padding: 22px 18px; }
   .rail-wide { grid-auto-columns: 82%; }
   .sale-grid { grid-template-columns: 1fr; }

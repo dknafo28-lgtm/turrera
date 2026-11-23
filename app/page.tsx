@@ -98,6 +98,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           </p>
         </section>
 
+        <section className="home-section why" aria-labelledby="why-h">
+          <h2 id="why-h">Why Turrera</h2>
+          <ul className="why-list">
+            <li><strong>Straight from government agencies</strong><span>Cities, counties, states and federal agencies selling their own surplus. No dealer markup.</span></li>
+            <li><strong>Clear, accurate listings</strong><span>Cleaned-up titles, every photo, condition notes and what similar items actually sold for.</span></li>
+            <li><strong>Fleet-maintained equipment</strong><span>Government trucks, boats and equipment are usually serviced on a schedule, and many come with records.</span></li>
+          </ul>
+        </section>
+
         {marine.length ? (
           <section className="home-section" aria-labelledby="marine-h">
             <div className="section-head">
