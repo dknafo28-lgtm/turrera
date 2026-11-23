@@ -165,6 +165,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             <div className="bidbox-actions">
               <a className="btn btn-primary btn-block" href={bidLink} target="_blank" rel="noopener noreferrer">View and bid on {site}</a>
               <a className="btn btn-outline btn-block" href="#buy-for-me">Have us buy it for you</a>
+              <a className="btn btn-outline btn-block" href={`/financing?lot=${encodeURIComponent(lot.id)}#apply`}>Get pre-approved for financing</a>
               <WatchButton id={lot.id} />
             </div>
             <p className="fine">

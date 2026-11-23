@@ -27,6 +27,7 @@ export default async function Thanks({ searchParams }: { searchParams: Promise<Q
     buy: paid
       ? { h: "Deposit received", p: "We have your request and your deposit. We'll confirm by email before the auction closes, and tell you right away whether we won." }
       : { h: "Request received", p: "We have your request. David will email you within one business day to confirm the lot and collect the deposit before we bid." },
+    finance: { h: "Pre-approval request received", p: "We'll pass your request to a lending partner, and they'll contact you, usually within one business day. Turrera isn't a lender; the lender sets rates and terms." },
     error: { h: "That didn't go through", p: q.m === "email" ? "Please check the email address and try again." : "Something went wrong saving your request. Please go back and try again." },
   };
   const m = msg[q.k ?? ""] ?? msg.sub;

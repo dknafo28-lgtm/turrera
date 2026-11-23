@@ -30,26 +30,30 @@ async function sendNewsletter(db, cfg, transport) {
 }
 
 async function notifyAdmin(db, cfg, transport) {
-  const [buys, sells] = await Promise.all([
+  const [buys, sells, fins] = await Promise.all([
     db.from("buy_requests").select("*").is("notified_at", null).order("created_at").limit(50),
     db.from("sell_leads").select("*").is("notified_at", null).order("created_at").limit(50),
+    db.from("finance_requests").select("*").is("notified_at", null).order("created_at").limit(50),
   ]);
+  const f = fins.error ? [] : (fins.data ?? []);
   const b = buys.data ?? [];
   const s = sells.data ?? [];
-  if (!b.length && !s.length) return;
+  if (!b.length && !s.length && !f.length) return;
   const lines = [
     ...b.map((r) => `<li><strong>Buy request:</strong> ${esc(r.name)} (${esc(r.email)}${r.phone ? `, ${esc(r.phone)}` : ""}) wants <a href="${esc(r.lot_url ?? cfg.site)}">${esc(r.lot_title ?? r.lot_id)}</a>, top bid ${money(r.max_bid)}, deposit ${money(r.deposit)}, ship to ${esc(r.destination ?? "not given")}. Status: ${esc(r.status)}.</li>`),
+    ...f.map((r) => `<li><strong>Financing request:</strong> ${esc(r.name)}${r.company ? `, ${esc(r.company)}` : ""} (${esc(r.email)}${r.phone ? `, ${esc(r.phone)}` : ""}), ${esc(r.buyer_type ?? "business")} in ${esc(r.state ?? "?")}, wants ${money(r.amount) ?? "an unstated amount"} for ${esc(r.lot_title ?? r.what ?? "not given")}. Credit ${esc(r.credit ?? "?")}, ${esc(r.years_in_business ?? "")}.</li>`),
     ...s.map((r) => `<li><strong>Sell lead:</strong> ${esc(r.company)}, ${esc(r.name)} (${esc(r.email)}${r.phone ? `, ${esc(r.phone)}${r.call_consent ? ", OK to call" : ", email only"}` : ""}). Fleet ${esc(r.fleet_size ?? "?")}, timeline ${esc(r.timeline ?? "?")}. Selling: ${esc(r.items ?? "not given")}</li>`),
   ];
   await transport.sendMail({
     from: cfg.from, to: cfg.admin,
-    subject: `Turrera: ${b.length ? `${b.length} buy request${b.length > 1 ? "s" : ""}` : ""}${b.length && s.length ? ", " : ""}${s.length ? `${s.length} sell lead${s.length > 1 ? "s" : ""}` : ""}`,
+    subject: `Turrera: ${[b.length ? `${b.length} buy request${b.length > 1 ? "s" : ""}` : "", f.length ? `${f.length} financing request${f.length > 1 ? "s" : ""}` : "", s.length ? `${s.length} sell lead${s.length > 1 ? "s" : ""}` : ""].filter(Boolean).join(", ")}`,
     html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5"><ul>${lines.join("")}</ul><p><a href="${cfg.site}/admin">Open admin</a></p></div>`,
   });
   const now = new Date().toISOString();
   if (b.length) await db.from("buy_requests").update({ notified_at: now }).in("id", b.map((r) => r.id));
   if (s.length) await db.from("sell_leads").update({ notified_at: now }).in("id", s.map((r) => r.id));
-  console.log(`Notified David: ${b.length} buy request(s), ${s.length} sell lead(s).`);
+  if (f.length) await db.from("finance_requests").update({ notified_at: now }).in("id", f.map((r) => r.id));
+  console.log(`Notified David: ${b.length} buy request(s), ${f.length} financing request(s), ${s.length} sell lead(s).`);
 }
 
 async function main() {

@@ -13,6 +13,8 @@ const when = (s: string) => new Date(s).toLocaleString("en-US", { month: "short"
 
 type Buy = { id: string; lot_id: string; lot_title: string | null; lot_url: string | null; name: string; email: string; phone: string | null; max_bid: number; destination: string | null; notes: string | null; deposit: number | null; status: string; created_at: string };
 type Sell = { id: string; kind: string | null; company: string; name: string; email: string; phone: string | null; call_consent: boolean; location: string | null; fleet_size: string | null; items: string | null; timeline: string | null; status: string; created_at: string };
+type Fin = { id: string; lot_id: string | null; lot_title: string | null; buyer_type: string | null; name: string; company: string | null; email: string; phone: string | null; state: string | null; amount: number | null; credit: string | null; years_in_business: string | null; what: string | null; contact_consent: boolean; status: string; created_at: string };
+const FIN = ["new", "sent_to_lender", "approved", "declined", "funded", "closed"];
 type News = { id: string; subject: string; html: string; social: { text: string }[] | null; status: string; created_at: string; sent_count: number | null; sent_at: string | null };
 
 function StatusForm({ action, id, status, options, anchor }: { action: string; id: string; status: string; options: string[]; anchor: string }) {
@@ -45,13 +47,15 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       </>
     );
   }
-  const [buys, sells, news, subs, alerts] = await Promise.all([
+  const [buys, sells, news, subs, alerts, fins] = await Promise.all([
     db.from("buy_requests").select("*").order("created_at", { ascending: false }).limit(100),
     db.from("sell_leads").select("*").order("created_at", { ascending: false }).limit(100),
     db.from("newsletters").select("id,subject,html,social,status,created_at,sent_count,sent_at").order("created_at", { ascending: false }).limit(6),
     db.from("subscribers").select("id", { count: "exact", head: true }).eq("status", "active"),
     db.from("saved_searches").select("id", { count: "exact", head: true }).eq("active", true),
+    db.from("finance_requests").select("*").order("created_at", { ascending: false }).limit(100),
   ]);
+  const finRows = (fins.data ?? []) as Fin[];
   const buyRows = (buys.data ?? []) as Buy[];
   const sellRows = (sells.data ?? []) as Sell[];
   const newsRows = (news.data ?? []) as News[];
@@ -68,6 +72,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
         <dl className="admin-stats">
           <div><dt>Open buy requests</dt><dd>{buyRows.filter((b) => !["done", "cancelled", "lost"].includes(b.status)).length}</dd></div>
+          <div><dt>New financing requests</dt><dd>{finRows.filter((f) => f.status === "new").length}</dd></div>
           <div><dt>New sell leads</dt><dd>{sellRows.filter((s) => s.status === "new").length}</dd></div>
           <div><dt>Newsletter subscribers</dt><dd>{(subs.count ?? 0).toLocaleString()}</dd></div>
           <div><dt>Active search alerts</dt><dd>{(alerts.count ?? 0).toLocaleString()}</dd></div>
@@ -118,6 +123,29 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
               </table>
             </div>
           ) : <p className="fine">No leads yet. They come from the Sell your fleet page.</p>}
+        </section>
+
+        <section className="page-section" id="finance">
+          <h2>Financing requests</h2>
+          {finRows.length ? (
+            <div className="table-wrap">
+              <table className="admin-table">
+                <thead><tr><th>Received</th><th>Buyer</th><th>Amount</th><th>Credit and business</th><th>Buying</th><th>Status</th></tr></thead>
+                <tbody>
+                  {finRows.map((f) => (
+                    <tr key={f.id}>
+                      <td>{when(f.created_at)}</td>
+                      <td>{f.name}{f.company ? <>, {f.company}</> : null}<br /><a href={`mailto:${f.email}`}>{f.email}</a>{f.phone ? <><br /><a href={`tel:${f.phone}`}>{f.phone}</a></> : null}<br /><span className="fine">{label(f.buyer_type ?? "business")}{f.state ? `, ${f.state}` : ""}</span></td>
+                      <td className="num">{money(f.amount) ?? "Not given"}</td>
+                      <td>{f.credit ?? "Credit not given"}<br /><span className="fine">{f.years_in_business ?? ""}</span></td>
+                      <td className="wrap">{f.lot_id ? <a href={`/lot/${encodeURIComponent(f.lot_id)}`}>{f.lot_title ?? f.lot_id}</a> : null}{f.what ? <p className="fine">{f.what}</p> : null}</td>
+                      <td><StatusForm action="fin_status" id={f.id} status={f.status} options={FIN} anchor="finance" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="fine">No financing requests yet. They come from the Financing page and the button on each lot.</p>}
         </section>
 
         <section className="page-section" id="newsletter">

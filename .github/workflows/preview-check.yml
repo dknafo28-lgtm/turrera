@@ -1,0 +1,36 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [mobile]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci && npm i --no-save puppeteer-core@23
+      - run: npx next build
+      - name: iPhone audit
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          LOT=$(curl -s "http://localhost:3123/search?category=boats" | grep -o 'href="/lot/[^"]*"' | head -1 | cut -d'"' -f2)
+          export CHROME=$(which google-chrome || which chromium)
+          node scripts/iphone-audit.mjs http://localhost:3123 / "/search?category=trucks" "/search?source=gsa&source=municibid" "$LOT" /financing /sell /buy-for-me /watchlist
+      - name: Save screenshots
+        if: always()
+        run: |
+          cp -r shots /tmp/shots || true
+          git config user.name "turrera-bot"; git config user.email "bot@turrera.com"
+          git checkout --orphan preview-shots
+          git rm -rq --cached . && rm -rf ./* .github .gitignore
+          cp /tmp/shots/*.png . && git add *.png && git commit -qm "Screenshots" && git push -f origin preview-shots
