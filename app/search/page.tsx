@@ -3,8 +3,8 @@ import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
 import AlertForm from "@/components/AlertForm";
 import {
-  CATEGORIES, EASE, ENDING, PAGE_SIZE, SOLD_SORTS, SORTS, SOURCE_SHORT, STATES, THIS_YEAR, TYPES, VEHICLE_CATEGORIES,
-  categoryCounts, loadLots, normalizeParams, sourcesOf, typeCounts, typeLabel, type Params,
+  CATEGORIES, EASE, ENDING, PAGE_SIZE, SOLD_SORTS, SORTS, STATES, THIS_YEAR, TYPES, VEHICLE_CATEGORIES,
+  categoryCounts, loadLots, normalizeParams, typeCounts, typeLabel, type Params,
 } from "@/lib/lots";
 
 export const dynamic = "force-dynamic";
@@ -40,8 +40,6 @@ function chips(p: Params) {
   if (p.state) out.push({ label: "State", value: p.state, remove: { state: undefined } });
   if (p.min || p.max) out.push({ label: "Bid", value: `${p.min ? `$${Number(p.min).toLocaleString()}` : "$0"} to ${p.max ? `$${Number(p.max).toLocaleString()}` : "any"}`, remove: { min: undefined, max: undefined } });
   if (p.ease && EASE[p.ease]) out.push({ label: "Resale", value: EASE[p.ease].toLowerCase(), remove: { ease: undefined } });
-  const sites = sourcesOf(p);
-  for (const s of sites) out.push({ label: "Site", value: SOURCE_SHORT[s] ?? s, remove: { source: sites.filter((x) => x !== s).join(",") || undefined } });
   return out;
 }
 
@@ -55,7 +53,6 @@ function pages(current: number, total: number) {
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const p = normalizeParams(await searchParams);
-  const pickedSites = sourcesOf(p);
   const [{ lots, total, error }, counts, subCounts] = await Promise.all([loadLots(p), categoryCounts(p), typeCounts(p)]);
   const types = TYPES[p.category ?? ""] ?? [];
   const showYears = !p.category || VEHICLE_CATEGORIES.includes(p.category);
@@ -205,13 +202,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </fieldset>
               ) : null}
 
-              <fieldset>
-                <legend>Auction sites</legend>
-                <p className="fieldset-note">{pickedSites.length ? `${pickedSites.length} selected` : "Showing all sites. Tick any to narrow it down."}</p>
-                {Object.entries(SOURCE_SHORT).map(([k, label]) => (
-                  <label className="opt" key={k}><input type="checkbox" name="source" value={k} defaultChecked={pickedSites.includes(k)} /> <span>{label}</span></label>
-                ))}
-              </fieldset>
 
               <div className="sidebar-actions">
                 <button type="submit" className="btn btn-primary">Show results</button>

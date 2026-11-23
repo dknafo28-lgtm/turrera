@@ -23,7 +23,7 @@ async function pick(db) {
 
 function lotFacts(l) {
   return {
-    id: l.id, title: titleCase(l.title), place: [l.city, l.state].filter(Boolean).join(", "), site: SOURCE_NAME[l.source] || l.source,
+    id: l.id, title: titleCase(l.title), place: [l.city, l.state].filter(Boolean).join(", "),
     current_bid: l.current_bid, closes: closes(l.end_time), condition: (l.condition || "").slice(0, 300),
   };
 }
@@ -48,7 +48,7 @@ Return JSON only:
  "intro": "2 sentences on what's notable in this week's auctions",
  "blurbs": {"<lot id>": "one sentence, max 22 words, on why it's worth a look or what to check; use only facts given"},
  "social": [{"lot_id": "<id>", "text": "a 2-3 sentence social media post about one lot: what it is, where, current bid, when it closes; end with: We can bid, pay and ship it for you. Link in bio."}]}
-Write 5 social posts about different lots. Never invent mileage, condition or prices that aren't in the data.`;
+Write 5 social posts about different lots. Never invent mileage, condition or prices that aren't in the data. Never name the auction website a lot is listed on.`;
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

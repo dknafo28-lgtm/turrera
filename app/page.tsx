@@ -3,20 +3,11 @@ import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
 import NewsletterForm from "@/components/NewsletterForm";
 import ShowcaseCard from "@/components/ShowcaseCard";
-import { CATEGORIES, SOURCE_SHORT, STATES, TYPES, loadHome, type Params } from "@/lib/lots";
+import { CATEGORIES, STATES, TYPES, loadHome, type Params } from "@/lib/lots";
 import { loadShowcase } from "@/lib/showcase";
 
 export const dynamic = "force-dynamic";
 
-const SOURCE_NOTES: Record<string, string> = {
-  gsa: "Federal agencies, through the GSA",
-  publicsurplus: "State and local governments, schools",
-  municibid: "Towns, counties, schools and authorities",
-  jjkane: "City, county and state fleets only",
-  govdeals: "From your saved-search alerts",
-  govplanet: "From your saved-search alerts",
-  cws: "From your auction emails",
-};
 
 // The eight categories most buyers come for; the rest are one tap away in "Shop by category".
 const FEATURED = ["boats", "trucks", "cars", "equipment", "powersports", "buses", "trailers", "emergency"];
@@ -38,7 +29,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
   const qs = new URLSearchParams(Object.entries(p).filter(([, v]) => typeof v === "string" && v) as [string, string][]).toString();
   if (qs) redirect(`/search?${qs}`);
 
-  const [{ soldRecent, marine, endingSoon, newest, counts, sourceCounts, tilePhotos, endingToday }, showcase] = await Promise.all([loadHome(), loadShowcase(6)]);
+  const [{ soldRecent, marine, endingSoon, newest, counts, tilePhotos, endingToday }, showcase] = await Promise.all([loadHome(), loadShowcase(6)]);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
@@ -172,24 +163,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           </section>
         ) : null}
 
-        <section className="home-section home-split">
-          <div>
-            <h2>Where the lots come from</h2>
-            <ul className="source-list">
-              {Object.entries(sourceCounts).map(([k, n]) => (
-                <li key={k}>
-                  <a href={`/search?source=${k}`}><strong>{SOURCE_SHORT[k] ?? k}</strong><span>{SOURCE_NOTES[k]}</span></a>
-                  <em>{n.toLocaleString()}</em>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h2>Browse by state</h2>
-            <ul className="state-grid">
-              {STATES.map((s) => <li key={s}><a href={`/search?state=${s}`}>{s}</a></li>)}
-            </ul>
-          </div>
+        <section className="home-section">
+          <h2>Browse by state</h2>
+          <ul className="state-grid">
+            {STATES.map((s) => <li key={s}><a href={`/search?state=${s}`}>{s}</a></li>)}
+          </ul>
         </section>
       </main>
     </>

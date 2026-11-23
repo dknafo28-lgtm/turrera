@@ -64,7 +64,6 @@ export default async function LotPage({ params, searchParams }: { params: Promis
   const facts: [string, string][] = [
     ["Location", place || "Not listed"],
     ["Seller", lot.agency ? titleCase(lot.agency) : "Not listed"],
-    ["Auction site", site],
     ["Category", [cat?.label, typeLabel(lot.category, lot.subcategory)].filter(Boolean).join(": ") || "Not listed"],
   ];
   if (lot.length_ft) facts.splice(1, 0, ["Length", `${lot.length_ft} ft`]);

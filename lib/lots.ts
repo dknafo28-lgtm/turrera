@@ -199,29 +199,18 @@ export async function loadHome() {
   const photoFor = (cat: string) => list((q) => q.eq("category", cat).gte("end_time", now).not("photo_url", "is", null)
     .in("source", ["publicsurplus", "municibid", "jjkane"]).order("current_bid", { ascending: false, nullsFirst: false }), BASE, 1);
   const tilesP = Promise.all(CATEGORIES.filter((c) => c.key !== "other").map(async (c) => [c.key, (await photoFor(c.key))[0]?.photo_url ?? null] as const));
-  const [endingSoon, newest, counts, sourceCounts, tiles, marine, soldRecent] = await Promise.all([
+  const [endingSoon, newest, counts, tiles, marine, soldRecent] = await Promise.all([
     list((q) => q.gte("end_time", now).lte("end_time", day).in("category", MAIN).not("photo_url", "is", null).order("end_time", { ascending: true }), FULL, 10),
     list((q) => q.gte("end_time", now).in("category", MAIN).not("photo_url", "is", null).order("first_seen", { ascending: false }), FULL, 10),
     categoryCounts({}),
-    sourceCountsOpen(),
     tilesP,
     list((q) => q.gte("end_time", now).eq("category", "boats").order("end_time", { ascending: true }), FULL, 12),
     list((q) => q.lt("end_time", now).eq("sold", true).in("category", MAIN).not("photo_url", "is", null).gte("final_price", 500).order("end_time", { ascending: false }), FULL, 12),
   ]);
   const endingToday = await countOpen((q) => q.lte("end_time", day));
-  return { soldRecent, marine, endingSoon, newest, counts, sourceCounts, tilePhotos: Object.fromEntries(tiles) as Record<string, string | null>, endingToday };
+  return { soldRecent, marine, endingSoon, newest, counts, tilePhotos: Object.fromEntries(tiles) as Record<string, string | null>, endingToday };
 }
 
-async function sourceCountsOpen(): Promise<Record<string, number>> {
-  const supabase = getReadClient();
-  if (!supabase) return {};
-  const now = new Date().toISOString();
-  const entries = await Promise.all(Object.keys(SOURCE_SHORT).map(async (s) => {
-    const { count } = await supabase.from("lots").select("id", { count: "exact", head: true }).eq("source", s).or(`end_time.gte.${now},end_time.is.null`);
-    return [s, count ?? 0] as const;
-  }));
-  return Object.fromEntries(entries.filter(([, c]) => c > 0));
-}
 
 export async function lotsByIds(ids: string[]): Promise<Lot[]> {
   const clean = ids.filter((i) => typeof i === "string" && i.length < 120).slice(0, 100);

@@ -62,7 +62,7 @@ export function lotRowHtml(cfg, lot, blurb = "") {
 <td width="150" valign="top" style="padding-right:14px">${lot.photo_url ? `<a href="${esc(link)}"><img src="${esc(lot.photo_url)}" width="150" alt="" style="display:block;width:150px;height:auto;border-radius:3px;border:0"></a>` : ""}</td>
 <td valign="top" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.45;color:#1b1b1b">
 <a href="${esc(link)}" style="font-size:16px;font-weight:bold;color:#162e51;text-decoration:none">${esc(titleCase(lot.title) || "Untitled lot")}</a><br>
-<span style="color:#565c65">${esc(place || "Location not listed")}, ${esc(SOURCE_NAME[lot.source] || lot.source)}</span><br>
+<span style="color:#565c65">${esc(place || "Location not listed")}</span><br>
 <strong>${esc(bid)}</strong>${lot.current_bid > 0 ? ` <span style="color:#565c65">current bid</span>` : ""}<br>
 <span style="color:#565c65">Closes ${esc(closes(lot.end_time))}</span>
 ${blurb ? `<br><span>${esc(blurb)}</span>` : ""}
