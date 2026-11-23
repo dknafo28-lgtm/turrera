@@ -30,6 +30,14 @@ export const SORTS: Record<string, { label: string; column: string; ascending: b
   newest: { label: "Newly listed", column: "first_seen", ascending: false },
 };
 
+// Sort options when looking at sold items.
+export const SOLD_SORTS: Record<string, { label: string; column: string; ascending: boolean }> = {
+  recent: { label: "Recently sold", column: "end_time", ascending: false },
+  price_high: { label: "Highest price", column: "final_price", ascending: false },
+  price_low: { label: "Lowest price", column: "final_price", ascending: true },
+  bids: { label: "Most bids", column: "bid_count", ascending: false },
+};
+
 export const ENDING: Record<string, { label: string; hours: number }> = {
   "6h": { label: "Next 6 hours", hours: 6 },
   "24h": { label: "Next 24 hours", hours: 24 },
@@ -42,7 +50,7 @@ export const EASE: Record<string, string> = { easy: "Easy to sell", moderate: "E
 export type Params = {
   q?: string; category?: string; state?: string; max?: string; min?: string; sort?: string;
   ending?: string; source?: string; ease?: string; deal?: string; page?: string; view?: string;
-  sub?: string; ymin?: string; ymax?: string; lmin?: string; lmax?: string;
+  sub?: string; ymin?: string; ymax?: string; lmin?: string; lmax?: string; status?: string;
 };
 
 // Turns raw URL params into Params. Several ticked sites arrive as repeated
@@ -67,7 +75,7 @@ export type Result = { lots: Lot[]; total: number; error?: string };
 type Client = NonNullable<ReturnType<typeof getReadClient>>;
 
 const BASE = "id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen";
-const FULL = `${BASE},subcategory,length_ft,year,est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source`;
+const FULL = `${BASE},subcategory,length_ft,year,final_price,bid_count,sold,est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source`;
 
 function words(q?: string) {
   return (q ?? "").toLowerCase().replace(/[^\p{L}\p{N}\s\-.]/gu, " ").split(/\s+/).filter(Boolean).slice(0, 6);
@@ -75,18 +83,22 @@ function words(q?: string) {
 
 // Applies every filter except category, so category counts can reuse it.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyFilters<T extends { or: any; eq: any; in: any; lte: any; gte: any; gt: any }>(query: T, p: Params, full: boolean): T {
-  let q = query.or(`end_time.gte.${new Date().toISOString()},end_time.is.null`);
+function applyFilters<T extends { or: any; eq: any; in: any; lte: any; gte: any; gt: any; lt: any }>(query: T, p: Params, full: boolean): T {
+  const nowIso = new Date().toISOString();
+  let q = p.status === "sold"
+    ? query.lt("end_time", nowIso).gte("end_time", new Date(Date.now() - 365 * 86_400_000).toISOString()).eq("sold", true)
+    : query.or(`end_time.gte.${nowIso},end_time.is.null`);
   for (const w of words(p.q)) q = q.or(`title.ilike."%${w}%",description.ilike."%${w}%"`);
   if (p.state && STATES.includes(p.state)) q = q.eq("state", p.state);
   const sources = sourcesOf(p);
   if (sources.length === 1) q = q.eq("source", sources[0]);
   else if (sources.length > 1) q = q.in("source", sources);
   const max = Number(p.max);
-  if (p.max && Number.isFinite(max) && max > 0) q = q.lte("current_bid", max);
+  const priceCol = p.status === "sold" ? "final_price" : "current_bid";
+  if (p.max && Number.isFinite(max) && max > 0) q = q.lte(priceCol, max);
   const min = Number(p.min);
-  if (p.min && Number.isFinite(min) && min > 0) q = q.gte("current_bid", min);
-  if (p.ending && ENDING[p.ending]) q = q.lte("end_time", new Date(Date.now() + ENDING[p.ending].hours * 3_600_000).toISOString());
+  if (p.min && Number.isFinite(min) && min > 0) q = q.gte(priceCol, min);
+  if (p.status !== "sold" && p.ending && ENDING[p.ending]) q = q.lte("end_time", new Date(Date.now() + ENDING[p.ending].hours * 3_600_000).toISOString());
   const ymin = Number(p.ymin);
   if (p.ymin && ymin >= 1900) q = q.gte("year", ymin);
   const ymax = Number(p.ymax);
@@ -107,14 +119,14 @@ export async function loadLots(p: Params): Promise<Result> {
   const supabase = getReadClient();
   if (!supabase) return { lots: [], total: 0, error: "The database isn't connected yet. Add the Supabase keys in Vercel." };
   const first = await query(supabase, p, true);
-  if (first.error && /does not exist|spread|sell_ease|subcategory|length_ft/i.test(first.error)) {
+  if (first.error && /does not exist|spread|sell_ease|subcategory|length_ft|final_price|bid_count|sold/i.test(first.error)) {
     return query(supabase, { ...p, sort: p.sort === "spread" ? "ending" : p.sort }, false);
   }
   return first;
 }
 
 async function query(supabase: Client, p: Params, full: boolean): Promise<Result> {
-  const sort = SORTS[p.sort ?? "ending"] ?? SORTS.ending;
+  const sort = p.status === "sold" ? SOLD_SORTS[p.sort ?? "recent"] ?? SOLD_SORTS.recent : SORTS[p.sort ?? "ending"] ?? SORTS.ending;
   const page = Math.max(1, Math.min(200, Number(p.page) || 1));
   let q = supabase.from("lots").select(full ? FULL : BASE, { count: "exact" });
   q = applyFilters(q, p, full);
@@ -176,7 +188,7 @@ async function list(build: (q: any) => any, columns = FULL, limit = 12): Promise
   for (const cols of [columns, BASE]) {
     const { data, error } = await build(supabase.from("lots").select(cols)).limit(limit);
     if (!error) return (data ?? []) as unknown as Lot[];
-    if (!/does not exist|spread|sell_ease|subcategory|length_ft/i.test(error.message)) return [];
+    if (!/does not exist|spread|sell_ease|subcategory|length_ft|final_price|bid_count|sold/i.test(error.message)) return [];
   }
   return [];
 }
@@ -189,7 +201,7 @@ export async function loadHome() {
   const photoFor = (cat: string) => list((q) => q.eq("category", cat).gte("end_time", now).not("photo_url", "is", null)
     .in("source", ["publicsurplus", "municibid", "jjkane"]).order("current_bid", { ascending: false, nullsFirst: false }), BASE, 1);
   const tilesP = Promise.all(CATEGORIES.filter((c) => c.key !== "other").map(async (c) => [c.key, (await photoFor(c.key))[0]?.photo_url ?? null] as const));
-  const [endingSoon, deals, newest, counts, sourceCounts, tiles, marine] = await Promise.all([
+  const [endingSoon, deals, newest, counts, sourceCounts, tiles, marine, soldRecent] = await Promise.all([
     list((q) => q.gte("end_time", now).lte("end_time", day).in("category", MAIN).not("photo_url", "is", null).order("end_time", { ascending: true }), FULL, 10),
     list((q) => q.gte("end_time", now).gt("spread", 0).gt("current_bid", 0).in("category", MAIN).not("photo_url", "is", null).in("sell_ease", ["easy", "moderate"]).order("spread", { ascending: false }), FULL, 10),
     list((q) => q.gte("end_time", now).in("category", MAIN).not("photo_url", "is", null).order("first_seen", { ascending: false }), FULL, 10),
@@ -197,9 +209,10 @@ export async function loadHome() {
     sourceCountsOpen(),
     tilesP,
     list((q) => q.gte("end_time", now).eq("category", "boats").order("end_time", { ascending: true }), FULL, 12),
+    list((q) => q.lt("end_time", now).eq("sold", true).in("category", MAIN).not("photo_url", "is", null).gte("final_price", 500).order("end_time", { ascending: false }), FULL, 12),
   ]);
   const endingToday = await countOpen((q) => q.lte("end_time", day));
-  return { marine, endingSoon, deals, newest, counts, sourceCounts, tilePhotos: Object.fromEntries(tiles) as Record<string, string | null>, endingToday };
+  return { soldRecent, marine, endingSoon, deals, newest, counts, sourceCounts, tilePhotos: Object.fromEntries(tiles) as Record<string, string | null>, endingToday };
 }
 
 async function sourceCountsOpen(): Promise<Record<string, number>> {

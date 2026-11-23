@@ -290,3 +290,37 @@ grant execute on function public.log_finance_click(text, text, numeric) to anon,
 alter table public.lots add column if not exists subcategory text;
 alter table public.lots add column if not exists length_ft numeric;
 create index if not exists lots_category_sub_idx on public.lots (category, subcategory);
+
+-- Final results of ended auctions (true closing price, not the last bid we happened to see).
+alter table public.lots add column if not exists final_price numeric;
+alter table public.lots add column if not exists bid_count int;
+alter table public.lots add column if not exists sold boolean;
+alter table public.lots add column if not exists result_checked timestamptz;
+create index if not exists lots_sold_idx on public.lots (sold, end_time desc);
+
+-- David's own flips and customer purchases, shown on /our-sales with photos and reviews.
+create table if not exists public.showcase (
+  id            uuid primary key default gen_random_uuid(),
+  title         text not null,
+  category      text,
+  photos        text[] not null default '{}',
+  bought_price  numeric,
+  sold_price    numeric,
+  bought_from   text,          -- e.g. "GSA Auctions, Florida"
+  sold_to       text,          -- e.g. "Nassau, Bahamas"
+  sold_on       date,
+  story         text,
+  customer_name text,
+  review        text,
+  rating        int check (rating between 1 and 5),
+  kind          text not null default 'flip', -- flip (David bought and resold) | customer (bought for a customer)
+  published     boolean not null default true,
+  created_at    timestamptz not null default now()
+);
+grant all on public.showcase to service_role;
+grant select on public.showcase to anon, authenticated;
+alter table public.showcase enable row level security;
+drop policy if exists "showcase is public" on public.showcase;
+create policy "showcase is public" on public.showcase for select to anon, authenticated using (published);
+
+insert into storage.buckets (id, name, public) values ('showcase', 'showcase', true) on conflict (id) do nothing;
