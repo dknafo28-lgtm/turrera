@@ -4,7 +4,7 @@ export default function BuyForm({ lotId, site, missing = false, suggested }: { l
   return (
     <section className="lot-section buy-form" id="buy-for-me" aria-labelledby="buy-h">
       <h2 id="buy-h">Have us buy it for you</h2>
-      <p>Tell us your top price. We bid on {site} for you, pay the seller, and arrange pickup and shipping to you anywhere in the world. <a href="/buy-for-me">How it works</a></p>
+      <p>Tell us your top price. We bid for you, pay the seller, and arrange pickup and shipping to you anywhere in the world. <a href="/buy-for-me">How it works</a></p>
       {missing ? <p className="form-error" role="alert">Please fill in your name, email, a top bid, and agree to the terms.</p> : null}
       <form action="/api/buy" method="post" className="form-grid">
         <input type="hidden" name="lot_id" value={lotId} />

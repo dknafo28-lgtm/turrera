@@ -56,7 +56,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
   const place = [lot.city ? titleCase(lot.city) : null, lot.state, lot.zip].filter(Boolean).join(", ");
   const closes = closesAt(lot.end_time, dateOnly);
   const soldFor = lot.sold && lot.final_price ? lot.final_price : null;
-  const bid = soldFor !== null ? money(soldFor) as string : money(lot.current_bid) ?? (dateOnly ? "Shown on JJ Kane" : "No bids yet");
+  const bid = soldFor !== null ? money(soldFor) as string : money(lot.current_bid) ?? (dateOnly ? "See the auction" : "No bids yet");
   const bidLabel = soldFor !== null ? `Sold for${lot.bid_count ? ` after ${lot.bid_count} bid${lot.bid_count === 1 ? "" : "s"}` : ""}` : lot.end_time && new Date(lot.end_time).getTime() < Date.now() ? "Last bid we saw" : "Current bid";
   const l = lot as FullLot & { year?: number | null; make?: string | null; model?: string | null };
   const vehicle = [l.year, l.make ? titleCase(l.make) : null, l.model ? titleCase(l.model) : null].filter(Boolean).join(" ");
@@ -129,7 +129,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
                   </div>
                 </div>
               ) : (
-                <div className="gallery-empty">No photos were included in the feed. The listing on {site} may have more.</div>
+                <div className="gallery-empty">No photos were included in the feed. The original listing may have more.</div>
               )}
             </section>
 
@@ -190,7 +190,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
           <aside className="bidbox" aria-label="Bidding">
             <div className="bidbox-time">
               <Countdown end={lot.end_time} dateOnly={dateOnly} className="countdown-lg" />
-              {closes ? <p>Closes {closes}{dateOnly ? ". Check JJ Kane for the exact time." : ""}</p> : null}
+              {closes ? <p>Closes {closes}{dateOnly ? ". Check the auction for the exact time." : ""}</p> : null}
             </div>
             <dl className="bidbox-money">
               <div><dt>{bidLabel}</dt><dd className={soldFor !== null || money(lot.current_bid) ? "bidbox-bid" : "bidbox-bid-text"}>{bid}</dd></div>
@@ -209,7 +209,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               </div>
             ) : null}
             <div className="bidbox-actions">
-              <a className="btn btn-primary btn-block" href={bidLink} target="_blank" rel="noopener noreferrer">View and bid on {site}</a>
+              <a className="btn btn-primary btn-block" href={bidLink} target="_blank" rel="noopener noreferrer">View and bid</a>
               <a className="btn btn-outline btn-block" href="#buy-for-me">Have us buy it for you</a>
               <a className="btn btn-outline btn-block" href="#financing">Finance this lot</a>
               <WatchButton id={lot.id} />
@@ -221,7 +221,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               </a>
             ) : null}
             <p className="fine">
-              Bidding happens on {site}. A buyer&apos;s premium, taxes and pickup rules may apply.
+              A buyer&apos;s premium, taxes and pickup rules may apply.
             </p>
           </aside>
         </div>
