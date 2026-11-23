@@ -1,16 +1,19 @@
 const H = { "User-Agent": "TurreraBot/1.0 (+https://turrera.com)" };
-const get = async (u) => { try { const r = await fetch(u, { headers: H, redirect: "follow" }); return [r.status, r.url, await r.text()]; } catch (e) { return [0, u, String(e)]; } };
-let [s, u, t] = await get("https://www.gcsurplus.ca/robots.txt");
-console.log("ROBOTS", s, u, "\n" + t.slice(0, 1500));
-[s, u, t] = await get("https://www.gcsurplus.ca/");
-console.log("HOME", s, u, t.length);
-const links = [...new Set([...t.matchAll(/href="([^"]+)"/g)].map((m) => m[1]))];
-console.log("LINKS", links.filter((l) => /cfm|rss|xml|feed|term|condition|search|recherche|sale|vente|category|cat/i.test(l)).slice(0, 80).join("\n"));
-for (const path of ["/mn-eng.cfm", "/mn-eng.cfm?snc=wfsav&sc=ach-shop&vndsld=0&lci=&lcn=&lct=L&srchtype=&lcntry=&lprov=&lregn=", "/rss-eng.cfm"]) {
-  [s, u, t] = await get("https://www.gcsurplus.ca" + path);
-  console.log("\nPAGE", path, s, u, t.length);
-  const txt = t.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-  console.log(txt.slice(0, 1200));
-  const hrefs = [...new Set([...t.matchAll(/href="([^"]+)"/g)].map((m) => m[1]))].filter((l) => /cfm/.test(l));
-  console.log("CFM LINKS", hrefs.slice(0, 40).join("\n"));
+const B = "https://gcsurplus.ca/";
+const get = async (u) => { const r = await fetch(u, { headers: H }); return await r.text(); };
+const txt = (t) => t.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
+const tc = txt(await get(B + "mn-eng.cfm?snc=tc"));
+for (const k of ["automat", "robot", "scrap", "crawl", "reproduc", "commercial", "non-resident", "outside Canada", "foreign", "international", "export", "eligib", "Who can", "resident", "copy"]) {
+  let i = -1, n = 0; while ((i = tc.indexOf(k, i + 1)) >= 0 && n < 2) { console.log("TC", k, "=>", tc.slice(Math.max(0, i - 200), i + 300)); n++; }
 }
+const list = await get(B + "mn-eng.cfm?&snc=wfsav&vndsld=0&sc=ach-shop&lci=&sf=ferm-clos&so=ASC&srchtype=&hpcs=&hpsr=&kws=&jstp=&saleType=&str=1&sr=1&rpp=100");
+const i = list.indexOf("sc=enc-bid");
+console.log("\nLIST HTML around first item:\n", list.slice(Math.max(0, i - 2500), i + 2500));
+const rows = [...list.matchAll(/sc=enc-bid&amp;scn=(\d+)&amp;lcn=(\d+)/g)];
+console.log("ITEMS ON PAGE", new Set(rows.map((r) => r[2])).size);
+const m = rows[0];
+const item = await get(`${B}mn-eng.cfm?snc=wfsav&sc=enc-bid&scn=${m[1]}&lcn=${m[2]}&lct=L&srchtype=&lci=&str=1&lotnf=1&frmsr=1&sf=ferm-clos&saleType=`);
+console.log("\nITEM TEXT:\n", txt(item).slice(0, 3500));
+console.log("\nITEM IMGS:", [...new Set([...item.matchAll(/<img[^>]+src="([^"]+)"/g)].map((x) => x[1]))].slice(0, 20).join("\n"));
+const sold = txt(await get(B + "mn-eng.cfm?snc=wfsav&vndsld=1"));
+console.log("\nSOLD PAGE:\n", sold.slice(0, 2500));
