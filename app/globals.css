@@ -506,6 +506,9 @@ button, input, select { font: inherit; color: inherit; }
 .type-pills a[aria-current] em { color: var(--ice); }
 
 /* Sold comparables in the bid box */
+.bidbox-inspect { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--blue); border-radius: var(--radius); color: var(--ink); text-decoration: none; font-size: 14px; }
+.bidbox-inspect strong { color: var(--blue); }
+.bidbox-inspect:hover { background: #eff6fb; }
 .bidbox-comps { display: flex; flex-direction: column; gap: 1px; margin-top: 12px; padding: 10px 12px; border: 1px solid #b9dccb; background: #f1f8f4; border-radius: 3px; color: var(--ink); text-decoration: none; }
 .bidbox-comps:hover { border-color: var(--green); color: var(--ink); }
 .bidbox-comps span { font-size: 13px; color: var(--ink-2); }

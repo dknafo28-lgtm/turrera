@@ -4,6 +4,7 @@ import { back, field } from "@/lib/forms";
 const BUY = ["new", "deposit_paid", "bidding", "won", "lost", "paid", "shipped", "done", "cancelled"];
 const FIN = ["new", "sent_to_lender", "approved", "declined", "funded", "closed"];
 const SELL = ["new", "contacted", "booked", "listed", "sold", "lost"];
+const INSP = ["new", "paid", "scheduled", "done", "cancelled", "refunded"];
 
 // Admin actions. Middleware already checked the admin password.
 export async function POST(req: Request) {
@@ -19,6 +20,8 @@ export async function POST(req: Request) {
     await db.from("sell_leads").update({ status: field(fd, "status", 20) }).eq("id", id);
   } else if (action === "fin_status" && FIN.includes(field(fd, "status", 20))) {
     await db.from("finance_requests").update({ status: field(fd, "status", 20) }).eq("id", id);
+  } else if (action === "insp_status" && INSP.includes(field(fd, "status", 20))) {
+    await db.from("inspection_requests").update({ status: field(fd, "status", 20), updated_at: now }).eq("id", id);
   } else if (action === "approve") {
     await db.from("newsletters").update({ status: "approved", approved_at: now }).eq("id", id).eq("status", "draft");
   } else if (action === "discard") {

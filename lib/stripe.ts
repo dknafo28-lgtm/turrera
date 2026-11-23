@@ -16,18 +16,19 @@ async function stripe(path: string, init: RequestInit = {}) {
   return body;
 }
 
-export async function createDepositCheckout(opts: { amount: number; description: string; email: string; requestId: string; origin: string }) {
+export async function createDepositCheckout(opts: { amount: number; description: string; email: string; requestId: string; origin: string; product?: string; kind?: string }) {
+  const kind = opts.kind ?? "buy";
   const p = new URLSearchParams();
   p.set("mode", "payment");
   p.set("customer_email", opts.email);
   p.set("line_items[0][quantity]", "1");
   p.set("line_items[0][price_data][currency]", "usd");
   p.set("line_items[0][price_data][unit_amount]", String(Math.round(opts.amount * 100)));
-  p.set("line_items[0][price_data][product_data][name]", "Bidding deposit");
+  p.set("line_items[0][price_data][product_data][name]", opts.product ?? "Bidding deposit");
   p.set("line_items[0][price_data][product_data][description]", opts.description.slice(0, 300));
   p.set("metadata[request_id]", opts.requestId);
-  p.set("success_url", `${opts.origin}/thanks?k=buy&r=${opts.requestId}&s={CHECKOUT_SESSION_ID}`);
-  p.set("cancel_url", `${opts.origin}/thanks?k=buy&r=${opts.requestId}&unpaid=1`);
+  p.set("success_url", `${opts.origin}/thanks?k=${kind}&r=${opts.requestId}&s={CHECKOUT_SESSION_ID}`);
+  p.set("cancel_url", `${opts.origin}/thanks?k=${kind}&r=${opts.requestId}&unpaid=1`);
   const session = await stripe("/checkout/sessions", { method: "POST", body: p.toString() });
   return session.url as string;
 }

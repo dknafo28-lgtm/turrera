@@ -11,12 +11,13 @@ type Q = { k?: string; r?: string; s?: string; unpaid?: string; m?: string };
 export default async function Thanks({ searchParams }: { searchParams: Promise<Q> }) {
   const q = await searchParams;
   let paid = false;
-  if (q.k === "buy" && q.s && stripeEnabled()) {
+  if ((q.k === "buy" || q.k === "inspect") && q.s && stripeEnabled()) {
     try {
       const result = await checkoutPaid(q.s);
       if (result && result.requestId === q.r) {
         paid = true;
-        await getAdminClient()?.from("buy_requests").update({ status: "deposit_paid", stripe_session: q.s, updated_at: new Date().toISOString() }).eq("id", q.r).eq("status", "new");
+        const [table, status] = q.k === "buy" ? ["buy_requests", "deposit_paid"] : ["inspection_requests", "paid"];
+        await getAdminClient()?.from(table).update({ status, stripe_session: q.s, updated_at: new Date().toISOString() }).eq("id", q.r).eq("status", "new");
       }
     } catch { /* show the unpaid message */ }
   }
@@ -27,6 +28,9 @@ export default async function Thanks({ searchParams }: { searchParams: Promise<Q
     buy: paid
       ? { h: "Deposit received", p: "We have your request and your deposit. We'll confirm by email before the auction closes, and tell you right away whether we won." }
       : { h: "Request received", p: "We have your request. David will email you within one business day to confirm the lot and collect the deposit before we bid." },
+    inspect: paid
+      ? { h: "Inspection booked", p: "Payment received. We'll confirm the visit time by email within one business day, and send photos, video and answers before the auction closes." }
+      : { h: "Inspection request received", p: "We have your request. David will email you within one business day to confirm the visit and collect the fee." },
     finance: { h: "Pre-approval request received", p: "We'll pass your request to a lending partner, and they'll contact you, usually within one business day. Turrera isn't a lender; the lender sets rates and terms." },
     error: { h: "That didn't go through", p: q.m === "email" ? "Please check the email address and try again." : "Something went wrong saving your request. Please go back and try again." },
   };

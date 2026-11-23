@@ -324,3 +324,41 @@ drop policy if exists "showcase is public" on public.showcase;
 create policy "showcase is public" on public.showcase for select to anon, authenticated using (published);
 
 insert into storage.buckets (id, name, public) values ('showcase', 'showcase', true) on conflict (id) do nothing;
+
+-- Paid requests for a local inspector to look at a lot before the buyer bids.
+create table if not exists public.inspection_requests (
+  id             uuid primary key default gen_random_uuid(),
+  lot_id         text not null,
+  lot_title      text,
+  lot_url        text,
+  lot_place      text,
+  lot_end        timestamptz,
+  name           text not null,
+  email          text not null,
+  phone          text,
+  questions      text,
+  fee            numeric not null,
+  status         text not null default 'new', -- new | paid | scheduled | done | cancelled | refunded
+  stripe_session text,
+  notified_at    timestamptz,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+grant all on public.inspection_requests to service_role;
+alter table public.inspection_requests enable row level security;
+
+create or replace function public.request_inspection(p_lot_id text, p_name text, p_email text, p_phone text, p_questions text, p_fee numeric)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare rid uuid; t text; u text; pl text; e timestamptz;
+begin
+  if p_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'invalid email'; end if;
+  if p_fee is null or p_fee < 0 or p_fee > 5000 then raise exception 'invalid fee'; end if;
+  select title, lot_url, concat_ws(', ', city, state, zip), end_time into t, u, pl, e from lots where id = p_lot_id;
+  if t is null and u is null then raise exception 'lot not found'; end if;
+  insert into inspection_requests (lot_id, lot_title, lot_url, lot_place, lot_end, name, email, phone, questions, fee)
+  values (p_lot_id, t, u, pl, e, left(p_name, 120), lower(trim(p_email)), left(p_phone, 40), left(p_questions, 2000), p_fee)
+  returning id into rid;
+  return rid;
+end $$;
+revoke all on function public.request_inspection(text, text, text, text, text, numeric) from public;
+grant execute on function public.request_inspection(text, text, text, text, text, numeric) to anon, authenticated, service_role;

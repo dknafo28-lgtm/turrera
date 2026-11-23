@@ -17,6 +17,8 @@ type Buy = { id: string; lot_id: string; lot_title: string | null; lot_url: stri
 type Sell = { id: string; kind: string | null; company: string; name: string; email: string; phone: string | null; call_consent: boolean; location: string | null; fleet_size: string | null; items: string | null; timeline: string | null; status: string; created_at: string };
 type Fin = { id: string; lot_id: string | null; lot_title: string | null; buyer_type: string | null; name: string; company: string | null; email: string; phone: string | null; state: string | null; amount: number | null; credit: string | null; years_in_business: string | null; what: string | null; contact_consent: boolean; status: string; created_at: string };
 const FIN = ["new", "sent_to_lender", "approved", "declined", "funded", "closed"];
+const INSP = ["new", "paid", "scheduled", "done", "cancelled", "refunded"];
+type Insp = { id: string; lot_id: string; lot_title: string | null; lot_url: string | null; lot_place: string | null; lot_end: string | null; name: string; email: string; phone: string | null; questions: string | null; fee: number; status: string; created_at: string };
 type News = { id: string; subject: string; html: string; social: { text: string }[] | null; status: string; created_at: string; sent_count: number | null; sent_at: string | null };
 
 function StatusForm({ action, id, status, options, anchor }: { action: string; id: string; status: string; options: string[]; anchor: string }) {
@@ -57,6 +59,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     db.from("saved_searches").select("id", { count: "exact", head: true }).eq("active", true),
     db.from("finance_requests").select("*").order("created_at", { ascending: false }).limit(100),
   ]);
+  const insp = await db.from("inspection_requests").select("*").order("created_at", { ascending: false }).limit(100);
+  const inspRows = (insp.error ? [] : insp.data ?? []) as Insp[];
   const showcase = await db.from("showcase").select("*").order("created_at", { ascending: false }).limit(100);
   const saleRows = (showcase.data ?? []) as Sale[];
   const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
@@ -79,12 +83,37 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         {missingTables ? <div className="notice"><p>Some tables aren&apos;t set up yet. The database update runs automatically on the next deploy.</p></div> : null}
 
         <dl className="admin-stats">
+          <div><dt>Open inspections</dt><dd>{inspRows.filter((r) => ["new", "paid", "scheduled"].includes(r.status)).length}</dd></div>
           <div><dt>Open buy requests</dt><dd>{buyRows.filter((b) => !["done", "cancelled", "lost"].includes(b.status)).length}</dd></div>
           <div><dt>New financing requests</dt><dd>{finRows.filter((f) => f.status === "new").length}</dd></div>
           <div><dt>New sell leads</dt><dd>{sellRows.filter((s) => s.status === "new").length}</dd></div>
           <div><dt>Newsletter subscribers</dt><dd>{(subs.count ?? 0).toLocaleString()}</dd></div>
           <div><dt>Active search alerts</dt><dd>{(alerts.count ?? 0).toLocaleString()}</dd></div>
         </dl>
+
+        <section className="page-section" id="inspect">
+          <h2>Inspection requests</h2>
+          {inspRows.length ? (
+            <div className="table-wrap">
+              <table className="admin-table">
+                <thead><tr><th>Received</th><th>Lot</th><th>Where</th><th>Closes</th><th>Buyer</th><th>Fee</th><th>Status</th></tr></thead>
+                <tbody>
+                  {inspRows.map((r) => (
+                    <tr key={r.id}>
+                      <td>{when(r.created_at)}</td>
+                      <td><a href={`/lot/${encodeURIComponent(r.lot_id)}`}>{r.lot_title ?? r.lot_id}</a>{r.lot_url ? <> (<a href={r.lot_url} target="_blank" rel="noopener noreferrer">auction</a>)</> : null}{r.questions ? <p className="fine">{r.questions}</p> : null}</td>
+                      <td>{r.lot_place || "Not listed"}</td>
+                      <td>{r.lot_end ? when(r.lot_end) : ""}</td>
+                      <td>{r.name}<br /><a href={`mailto:${r.email}`}>{r.email}</a>{r.phone ? <><br /><a href={`tel:${r.phone}`}>{r.phone}</a></> : null}</td>
+                      <td className="num">{money(r.fee)}</td>
+                      <td><StatusForm action="insp_status" id={r.id} status={r.status} options={INSP} anchor="inspect" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="fine">No requests yet. They come from the “Hire a Turrera local inspector” form on each lot.</p>}
+        </section>
 
         <section className="page-section" id="buy">
           <h2>Buy requests</h2>
