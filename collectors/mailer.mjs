@@ -56,8 +56,6 @@ export function lotLink(cfg, lot) {
 export function lotRowHtml(cfg, lot, blurb = "") {
   const place = [lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ");
   const bid = money(lot.current_bid) && lot.current_bid > 0 ? money(lot.current_bid) : lot.source === "jjkane" ? "Bid shown on JJ Kane" : "No bids yet";
-  const value = lot.est_low != null && lot.est_high != null ? `${money(lot.est_low)}–${money(lot.est_high)}` : null;
-  const under = lot.current_bid > 0 && lot.spread > 0 ? `${money(lot.spread)} under estimated value` : null;
   const link = lotLink(cfg, lot);
   return `<tr><td style="padding:14px 0;border-top:1px solid #dfe1e2">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
@@ -65,8 +63,7 @@ export function lotRowHtml(cfg, lot, blurb = "") {
 <td valign="top" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.45;color:#1b1b1b">
 <a href="${esc(link)}" style="font-size:16px;font-weight:bold;color:#162e51;text-decoration:none">${esc(titleCase(lot.title) || "Untitled lot")}</a><br>
 <span style="color:#565c65">${esc(place || "Location not listed")}, ${esc(SOURCE_NAME[lot.source] || lot.source)}</span><br>
-<strong>${esc(bid)}</strong>${value ? ` <span style="color:#565c65">current bid, est. value ${esc(value)}</span>` : ""}<br>
-${under ? `<span style="color:#0f7a52;font-weight:bold">${esc(under)}</span><br>` : ""}
+<strong>${esc(bid)}</strong>${lot.current_bid > 0 ? ` <span style="color:#565c65">current bid</span>` : ""}<br>
 <span style="color:#565c65">Closes ${esc(closes(lot.end_time))}</span>
 ${blurb ? `<br><span>${esc(blurb)}</span>` : ""}
 </td></tr></table></td></tr>`;

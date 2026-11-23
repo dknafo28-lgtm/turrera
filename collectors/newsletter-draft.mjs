@@ -18,7 +18,7 @@ async function pick(db) {
   const seen = new Set();
   const take = (rows, n) => (rows ?? []).filter((l) => !seen.has(l.id) && seen.add(l.id)).slice(0, n);
   return [
-    { key: "deals", title: "Furthest under estimated value", lots: take(deals.data, 6) },
+    { key: "deals", title: "Best buys closing this week", lots: take(deals.data, 6) },
     { key: "boats", title: "Boats closing soon", lots: take(boats.data, 3) },
     { key: "big", title: "Work trucks and equipment worth a look", lots: take(big.data, 4) },
   ].filter((s) => s.lots.length);
@@ -27,7 +27,7 @@ async function pick(db) {
 function lotFacts(l) {
   return {
     id: l.id, title: titleCase(l.title), place: [l.city, l.state].filter(Boolean).join(", "), site: SOURCE_NAME[l.source] || l.source,
-    current_bid: l.current_bid, est_low: l.est_low, est_high: l.est_high, closes: closes(l.end_time), condition: (l.condition || "").slice(0, 300),
+    current_bid: l.current_bid, closes: closes(l.end_time), condition: (l.condition || "").slice(0, 300),
   };
 }
 
@@ -37,7 +37,7 @@ async function write(sections) {
     subject: `This week's surplus deals: ${titleCase(sections[0].lots[0].title)} and more`,
     intro: "Here are this week's best government surplus lots, picked for value and resale. Prices and values were current when this was sent.",
     blurbs: {},
-    social: sections.flatMap((s) => s.lots).slice(0, 5).map((l) => ({ lot_id: l.id, text: `${titleCase(l.title)}, ${[l.city, l.state].filter(Boolean).join(", ")}. ${l.current_bid > 0 ? `Current bid ${money(l.current_bid)}` : "Open for bids"}${l.est_low ? `, estimated value ${money(l.est_low)}–${money(l.est_high)}` : ""}. Closes ${closes(l.end_time)}.` })),
+    social: sections.flatMap((s) => s.lots).slice(0, 5).map((l) => ({ lot_id: l.id, text: `${titleCase(l.title)}, ${[l.city, l.state].filter(Boolean).join(", ")}. ${l.current_bid > 0 ? `Current bid ${money(l.current_bid)}` : "Open for bids"}. Closes ${closes(l.end_time)}.` })),
   };
   if (!key) return fallback;
   const lots = sections.flatMap((s) => s.lots.map(lotFacts));
@@ -50,7 +50,7 @@ Return JSON only:
 {"subject": "under 60 characters, names one standout lot",
  "intro": "2 sentences on what's notable this week",
  "blurbs": {"<lot id>": "one sentence, max 22 words, on why it's worth a look or what to check; use only facts given"},
- "social": [{"lot_id": "<id>", "text": "a 2-3 sentence social media post about one lot: what it is, where, current bid and estimated value if given, when it closes; end with: We can bid, pay and ship it for you. Link in bio."}]}
+ "social": [{"lot_id": "<id>", "text": "a 2-3 sentence social media post about one lot: what it is, where, current bid, when it closes; end with: We can bid, pay and ship it for you. Link in bio."}]}
 Write 5 social posts about different lots. Never invent mileage, condition or prices that aren't in the data.`;
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -87,7 +87,7 @@ async function main() {
     heading: copy.subject,
     intro: copy.intro,
     body,
-    footer: `You're getting this because you signed up for Turrera's weekly deals list. Values are estimates; check the listing before you bid. Want us to bid, pay and ship it for you, anywhere in the world? Reply to this email.<br><br><a href="{{UNSUBSCRIBE}}" style="color:#565c65">Unsubscribe</a>{{ADDRESS}}`,
+    footer: `You're getting this because you signed up for Turrera's weekly deals list. Check the listing before you bid. Want us to bid, pay and ship it for you, anywhere in the world? Reply to this email.<br><br><a href="{{UNSUBSCRIBE}}" style="color:#565c65">Unsubscribe</a>{{ADDRESS}}`,
   });
   const social = (copy.social ?? []).slice(0, 5).map((s) => {
     const lot = sections.flatMap((x) => x.lots).find((l) => l.id === s.lot_id);

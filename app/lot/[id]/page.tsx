@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 type FullLot = Lot & { photos: string[] | null; zip: string | null };
 
-const BASE = "id,source,title,description,category,subcategory,length_ft,final_price,bid_count,sold,current_bid,start_time,end_time,status,city,state,zip,agency,photo_url,lot_url,first_seen,year,make,model,est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source";
+const BASE = "id,source,title,description,category,subcategory,length_ft,final_price,bid_count,sold,current_bid,start_time,end_time,status,city,state,zip,agency,photo_url,lot_url,first_seen,year,make,model,condition,sell_ease,sell_note,value_source";
 const EASE_LABEL: Record<string, string> = { easy: "Easy to resell", moderate: "Moderate to resell", hard: "Hard to resell" };
 
 async function getLot(rawId: string): Promise<FullLot | null> {
@@ -52,13 +52,11 @@ export default async function LotPage({ params, searchParams }: { params: Promis
   const site = SOURCE_SHORT[lot.source] ?? lot.source;
   const title = titleCase(lot.title) || "Untitled lot";
   const cat = CATEGORIES.find((c) => c.key === lot.category);
-  const hasValue = lot.est_value !== null && lot.est_value !== undefined;
   const place = [lot.city ? titleCase(lot.city) : null, lot.state, lot.zip].filter(Boolean).join(", ");
   const closes = closesAt(lot.end_time, dateOnly);
   const soldFor = lot.sold && lot.final_price ? lot.final_price : null;
   const bid = soldFor !== null ? money(soldFor) as string : money(lot.current_bid) ?? (dateOnly ? "Shown on JJ Kane" : "No bids yet");
   const bidLabel = soldFor !== null ? `Sold for${lot.bid_count ? ` after ${lot.bid_count} bid${lot.bid_count === 1 ? "" : "s"}` : ""}` : lot.end_time && new Date(lot.end_time).getTime() < Date.now() ? "Last bid we saw" : "Current bid";
-  const deal = hasValue && (lot.current_bid ?? 0) > 0 && lot.spread !== null && lot.spread !== undefined ? lot.spread : null;
   const l = lot as FullLot & { year?: number | null; make?: string | null; model?: string | null };
   const vehicle = [l.year, l.make ? titleCase(l.make) : null, l.model ? titleCase(l.model) : null].filter(Boolean).join(" ");
 
@@ -176,11 +174,11 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             ) : null}
 
             {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
-              <FinanceOptions compact lotId={lot.id} category={lot.category} amount={lot.est_high ?? (lot.current_bid && lot.current_bid > 0 ? lot.current_bid : null)} />
+              <FinanceOptions compact lotId={lot.id} category={lot.category} amount={lot.current_bid && lot.current_bid > 0 ? lot.current_bid : null} />
             ) : null}
 
             {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
-              <BuyForm lotId={lot.id} site={site} missing={sp.buy === "missing"} suggested={lot.est_low ?? null} />
+              <BuyForm lotId={lot.id} site={site} missing={sp.buy === "missing"} suggested={null} />
             ) : null}
           </div>
 
@@ -191,7 +189,6 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             </div>
             <dl className="bidbox-money">
               <div><dt>{bidLabel}</dt><dd className={soldFor !== null || money(lot.current_bid) ? "bidbox-bid" : "bidbox-bid-text"}>{bid}</dd></div>
-              {hasValue ? <div><dt>Estimated value</dt><dd>{money(lot.est_low)} to {money(lot.est_high)}</dd></div> : null}
             </dl>
             {comps && soldFor === null ? (
               <a className="bidbox-comps" href="#sold-comps">
@@ -200,15 +197,10 @@ export default async function LotPage({ params, searchParams }: { params: Promis
                 <span>Median {money(comps.median)}, from {comps.lots.length < 8 ? comps.lots.length : "8+"} sales</span>
               </a>
             ) : null}
-            {deal !== null ? (
-              <p className={deal > 0 ? "bidbox-deal bidbox-deal-up" : "bidbox-deal bidbox-deal-down"}>
-                {deal > 0 ? `${money(deal)} under estimated value at the current bid` : `${money(-deal)} over estimated value at the current bid`}
-              </p>
-            ) : null}
             {lot.sell_ease ? (
               <div className="bidbox-ease">
                 <span className={`tag tag-ease-${lot.sell_ease}`}>{EASE_LABEL[lot.sell_ease] ?? lot.sell_ease}</span>
-                {lot.sell_note ? <p>{lot.sell_note}</p> : null}
+                {lot.sell_note && !/\$|\d{3}/.test(lot.sell_note) ? <p>{lot.sell_note}</p> : null}
               </div>
             ) : null}
             <div className="bidbox-actions">
@@ -219,7 +211,6 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             </div>
             <p className="fine">
               Bidding happens on {site}. A buyer&apos;s premium, taxes and pickup rules may apply.
-              {hasValue ? (lot.value_source === "ebay" ? ` Value from ${lot.comps_count} similar eBay listings.` : " The value is an estimate from the listing, so check recent sales.") : ""}
             </p>
           </aside>
         </div>

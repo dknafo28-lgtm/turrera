@@ -24,7 +24,6 @@ export const SOURCES: Record<string, string> = { gsa: "GSA Auctions", publicsurp
 
 export const SORTS: Record<string, { label: string; column: string; ascending: boolean }> = {
   ending: { label: "Ending soonest", column: "end_time", ascending: true },
-  spread: { label: "Biggest potential profit", column: "spread", ascending: false },
   price_low: { label: "Lowest price", column: "current_bid", ascending: true },
   price_high: { label: "Highest price", column: "current_bid", ascending: false },
   newest: { label: "Newly listed", column: "first_seen", ascending: false },
@@ -75,7 +74,7 @@ export type Result = { lots: Lot[]; total: number; error?: string };
 type Client = NonNullable<ReturnType<typeof getReadClient>>;
 
 const BASE = "id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen";
-const FULL = `${BASE},subcategory,length_ft,year,final_price,bid_count,sold,est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source`;
+const FULL = `${BASE},subcategory,length_ft,year,final_price,bid_count,sold,condition,sell_ease,sell_note,value_source`;
 
 function words(q?: string) {
   return (q ?? "").toLowerCase().replace(/[^\p{L}\p{N}\s\-.]/gu, " ").split(/\s+/).filter(Boolean).slice(0, 6);
@@ -110,7 +109,6 @@ function applyFilters<T extends { or: any; eq: any; in: any; lte: any; gte: any;
     if (p.lmax && lmax > 0) q = q.lte("length_ft", lmax);
     if (p.ease === "easy") q = q.eq("sell_ease", "easy");
     if (p.ease === "moderate") q = q.in("sell_ease", ["easy", "moderate"]);
-    if (p.deal === "1") q = q.gt("spread", 0).gt("current_bid", 0);
   }
   return q;
 }
@@ -201,9 +199,8 @@ export async function loadHome() {
   const photoFor = (cat: string) => list((q) => q.eq("category", cat).gte("end_time", now).not("photo_url", "is", null)
     .in("source", ["publicsurplus", "municibid", "jjkane"]).order("current_bid", { ascending: false, nullsFirst: false }), BASE, 1);
   const tilesP = Promise.all(CATEGORIES.filter((c) => c.key !== "other").map(async (c) => [c.key, (await photoFor(c.key))[0]?.photo_url ?? null] as const));
-  const [endingSoon, deals, newest, counts, sourceCounts, tiles, marine, soldRecent] = await Promise.all([
+  const [endingSoon, newest, counts, sourceCounts, tiles, marine, soldRecent] = await Promise.all([
     list((q) => q.gte("end_time", now).lte("end_time", day).in("category", MAIN).not("photo_url", "is", null).order("end_time", { ascending: true }), FULL, 10),
-    list((q) => q.gte("end_time", now).gt("spread", 0).gt("current_bid", 0).in("category", MAIN).not("photo_url", "is", null).in("sell_ease", ["easy", "moderate"]).order("spread", { ascending: false }), FULL, 10),
     list((q) => q.gte("end_time", now).in("category", MAIN).not("photo_url", "is", null).order("first_seen", { ascending: false }), FULL, 10),
     categoryCounts({}),
     sourceCountsOpen(),
@@ -212,7 +209,7 @@ export async function loadHome() {
     list((q) => q.lt("end_time", now).eq("sold", true).in("category", MAIN).not("photo_url", "is", null).gte("final_price", 500).order("end_time", { ascending: false }), FULL, 12),
   ]);
   const endingToday = await countOpen((q) => q.lte("end_time", day));
-  return { soldRecent, marine, endingSoon, deals, newest, counts, sourceCounts, tilePhotos: Object.fromEntries(tiles) as Record<string, string | null>, endingToday };
+  return { soldRecent, marine, endingSoon, newest, counts, sourceCounts, tilePhotos: Object.fromEntries(tiles) as Record<string, string | null>, endingToday };
 }
 
 async function sourceCountsOpen(): Promise<Record<string, number>> {

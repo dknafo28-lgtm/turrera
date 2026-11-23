@@ -1,5 +1,5 @@
 import type { Lot } from "@/lib/supabase";
-import { money, shortMoney, titleCase } from "@/lib/format";
+import { money, titleCase } from "@/lib/format";
 import Countdown from "./Countdown";
 import WatchButton from "./WatchButton";
 
@@ -11,8 +11,6 @@ export function lotHref(id: string) {
 
 export default function LotCard({ lot, layout = "grid" }: { lot: Lot; layout?: "grid" | "list" | "rail" }) {
   const href = lotHref(lot.id);
-  const hasValue = lot.est_value !== null && lot.est_value !== undefined;
-  const under = hasValue && (lot.current_bid ?? 0) > 0 && lot.spread !== null && lot.spread > 0 ? lot.spread : null;
   const place = [lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ");
   const bid = money(lot.current_bid) ?? (lot.source === "jjkane" ? "See auction" : "No bids yet");
   const soldFor = lot.sold && lot.final_price ? lot.final_price : null;
@@ -41,16 +39,9 @@ export default function LotCard({ lot, layout = "grid" }: { lot: Lot; layout?: "
               <span className="figure">{bid}</span>
             </div>
           )}
-          {hasValue ? (
-            <div>
-              <span className="label">Est. value</span>
-              <span className="figure figure-muted">{shortMoney(lot.est_low)}–{shortMoney(lot.est_high)}</span>
-            </div>
-          ) : null}
         </div>
-        {soldFor === null && (under !== null || lot.sell_ease) ? (
+        {soldFor === null && lot.sell_ease ? (
           <div className="card-tags">
-            {under !== null ? <span className="tag tag-deal">{shortMoney(under)} under value</span> : null}
             {lot.sell_ease ? <span className={`tag tag-ease-${lot.sell_ease}`}>{EASE_LABEL[lot.sell_ease] ?? lot.sell_ease}</span> : null}
           </div>
         ) : null}

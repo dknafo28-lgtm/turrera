@@ -11,11 +11,11 @@ test("links go to the auction while the site is private, to Turrera once public"
   assert.equal(lotLink({ ...cfg, publicSite: true }, lot), "https://turrera.com/lot/gsa%3A1");
 });
 
-test("lot row shows a cleaned title, the bid and the deal", () => {
+test("lot row shows a cleaned title and the bid, never an estimated value", () => {
   const html = lotRowHtml(cfg, lot, "Check the <rust>");
   assert.match(html, /2015 Ford F-250 4X4/);
   assert.match(html, /\$4,000/);
-  assert.match(html, /\$6,500 under estimated value/);
+  assert.doesNotMatch(html, /estimated|est\. value/i);
   assert.match(html, /Check the &lt;rust&gt;/);
 });
 

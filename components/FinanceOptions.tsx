@@ -7,7 +7,7 @@ export default function FinanceOptions({ lotId, category, amount, compact = fals
     <section className={compact ? "lot-section finance-options" : "finance-options"} id="financing" aria-labelledby="fin-h">
       {compact ? <h2 id="fin-h">Finance this lot</h2> : <h2 id="fin-h" className="visually-hidden">Lenders</h2>}
       {compact ? (
-        <p className="fine">Auctions want payment within about 2 days of closing, so get pre-approved before you bid{amount ? `. Estimated amount: ${money(amount)}` : ""}.</p>
+        <p className="fine">Auctions want payment within about 2 days of closing, so get pre-approved before you bid{amount ? `. Current bid: ${money(amount)}` : ""}.</p>
       ) : null}
       <ul className="lender-list">
         {keys.map((k, i) => {

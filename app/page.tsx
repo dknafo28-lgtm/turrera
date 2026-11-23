@@ -38,7 +38,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
   const qs = new URLSearchParams(Object.entries(p).filter(([, v]) => typeof v === "string" && v) as [string, string][]).toString();
   if (qs) redirect(`/search?${qs}`);
 
-  const [{ soldRecent, marine, endingSoon, deals, newest, counts, sourceCounts, tilePhotos, endingToday }, showcase] = await Promise.all([loadHome(), loadShowcase(6)]);
+  const [{ soldRecent, marine, endingSoon, newest, counts, sourceCounts, tilePhotos, endingToday }, showcase] = await Promise.all([loadHome(), loadShowcase(6)]);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
@@ -119,16 +119,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           </section>
         ) : null}
 
-        {deals.length ? (
-          <section className="home-section" aria-labelledby="deals-h">
-            <div className="section-head">
-              <h2 id="deals-h">Biggest discounts to market value</h2>
-              <a href="/search?sort=spread&amp;deal=1">See every deal</a>
-            </div>
-            <p className="section-note">Current bid compared with our estimated resale value. Check the listing before you bid.</p>
-            <div className="rail">{deals.map((lot) => <LotCard key={lot.id} lot={lot} layout="rail" />)}</div>
-          </section>
-        ) : null}
 
         <section className="home-section services" aria-labelledby="svc-h">
           <div className="services-main">
@@ -167,7 +157,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
         <section className="home-section home-band">
           <div>
             <h2>The best deals, every week</h2>
-            <p>One free email with the lots furthest under market value and what&apos;s closing soon.</p>
+            <p>One free email with the best lots closing soon.</p>
           </div>
           <NewsletterForm source="home" />
         </section>

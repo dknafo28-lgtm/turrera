@@ -29,7 +29,7 @@ export default function SiteHeader({ q = "", category = "" }: { q?: string; cate
             </div>
             <ul className="catmenu-quick">
               <li><a href="/search?ending=24h">Ending today</a></li>
-              <li><a href="/search?sort=spread&amp;deal=1">Best deals</a></li>
+              <li><a href="/search?status=sold">Sold prices</a></li>
               <li><a href="/buy-for-me">Buy for me</a></li>
               <li><a href="/financing">Financing</a></li>
               <li><a href="/sell">Sell your fleet</a></li>
@@ -79,7 +79,7 @@ export default function SiteHeader({ q = "", category = "" }: { q?: string; cate
       <nav className="header-nav" aria-label="Popular">
         <div className="header-nav-inner">
           <a href="/search?ending=24h">Ending today</a>
-          <a href="/search?sort=spread&amp;deal=1">Best deals</a>
+          <a href="/search?status=sold">Sold prices</a>
           {NAV.map((k) => {
             const c = CATEGORIES.find((x) => x.key === k);
             return c ? <a key={k} href={`/search?category=${encodeURIComponent(k)}`} aria-current={category === k ? "page" : undefined}>{c.label}</a> : null;

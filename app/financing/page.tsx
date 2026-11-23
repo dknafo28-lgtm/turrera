@@ -16,8 +16,8 @@ export default async function Financing({ searchParams }: { searchParams: Promis
   let lotTitle: string | null = null;
   let suggested: number | null = null;
   if (lot) {
-    const { data } = (await getReadClient()?.from("lots").select("title,est_high,current_bid,category").eq("id", lot).maybeSingle()) ?? { data: null };
-    if (data) { lotTitle = titleCase(data.title); suggested = data.est_high ?? (data.current_bid > 0 ? data.current_bid : null); category = data.category ?? null; }
+    const { data } = (await getReadClient()?.from("lots").select("title,current_bid,category").eq("id", lot).maybeSingle()) ?? { data: null };
+    if (data) { lotTitle = titleCase(data.title); suggested = data.current_bid > 0 ? data.current_bid : null; category = data.category ?? null; }
   }
   return (
     <>

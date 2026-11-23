@@ -11,7 +11,7 @@ import NewsletterForm from "@/components/NewsletterForm";
 
 export const metadata: Metadata = {
   title: "Turrera: government surplus auctions in one place",
-  description: "Search government surplus lots from GSA Auctions, Public Surplus, Municibid and JJ Kane, with condition notes and resale estimates.",
+  description: "Search government surplus lots from GSA Auctions, Public Surplus, Municibid and JJ Kane, with condition notes and recent sold prices.",
   icons: { icon: "/favicon.svg" },
 };
 
@@ -124,7 +124,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="footer-col">
               <h2>Weekly deals list</h2>
               <NewsletterForm source="footer" tone="dark" />
-            <p>Listings come from GSA Auctions, Public Surplus, Municibid, JJ Kane government sellers and your auction alerts. Turrera isn&apos;t affiliated with the selling agencies. Values and resale notes are estimates, so check the listing and recent sales before you bid.</p>
+            <p>Listings come from GSA Auctions, Public Surplus, Municibid, JJ Kane government sellers and your auction alerts. Turrera isn&apos;t affiliated with the selling agencies. Check the listing and recent sales before you bid.</p>
             </div>
           </div>
         </footer>

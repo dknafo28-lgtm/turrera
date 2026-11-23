@@ -40,7 +40,6 @@ function chips(p: Params) {
   if (p.state) out.push({ label: "State", value: p.state, remove: { state: undefined } });
   if (p.min || p.max) out.push({ label: "Bid", value: `${p.min ? `$${Number(p.min).toLocaleString()}` : "$0"} to ${p.max ? `$${Number(p.max).toLocaleString()}` : "any"}`, remove: { min: undefined, max: undefined } });
   if (p.ease && EASE[p.ease]) out.push({ label: "Resale", value: EASE[p.ease].toLowerCase(), remove: { ease: undefined } });
-  if (p.deal === "1") out.push({ label: "Price", value: "under market value", remove: { deal: undefined } });
   const sites = sourcesOf(p);
   for (const s of sites) out.push({ label: "Site", value: SOURCE_SHORT[s] ?? s, remove: { source: sites.filter((x) => x !== s).join(",") || undefined } });
   return out;
@@ -69,7 +68,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const active = chips(p);
   const cat = CATEGORIES.find((c) => c.key === p.category);
   const type = typeLabel(p.category, p.sub);
-  const baseHeading = p.q ? `Results for “${p.q}”` : type ? type : cat ? cat.label : p.ending === "24h" ? "Ending in the next 24 hours" : p.deal === "1" ? "Under estimated market value" : "All open lots";
+  const baseHeading = p.q ? `Results for “${p.q}”` : type ? type : cat ? cat.label : p.ending === "24h" ? "Ending in the next 24 hours" : "All open lots";
   const heading = sold ? (p.q || cat ? `Sold: ${baseHeading.replace(/^Results for /, "")}` : "Sold items and final prices") : baseHeading;
   const allCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const from = total ? (page - 1) * PAGE_SIZE + 1 : 0;
@@ -198,8 +197,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
               {!sold ? (
               <fieldset>
-                <legend>Value</legend>
-                <label className="opt"><input type="checkbox" name="deal" value="1" defaultChecked={p.deal === "1"} /> <span>Bid is under estimated value</span></label>
+                <legend>Resale</legend>
                 <label className="opt"><input type="radio" name="ease" value="" defaultChecked={!p.ease} /> <span>Any resale</span></label>
                 {Object.entries(EASE).map(([k, label]) => (
                   <label className="opt" key={k}><input type="radio" name="ease" value={k} defaultChecked={p.ease === k} /> <span>{label}</span></label>
