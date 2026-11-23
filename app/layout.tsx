@@ -28,7 +28,16 @@ document.querySelectorAll(".card-media img, .cat-tile-photo img").forEach(functi
 });
 document.addEventListener("change", function (e) {
   var el = e.target;
-  if (el && el.hasAttribute && el.hasAttribute("data-autosubmit") && el.form) el.form.submit();
+  if (!el || !el.hasAttribute || !el.form) return;
+  var clear = el.getAttribute("data-autosubmit-clear");
+  if (clear) {
+    clear.split(",").forEach(function (n) { var f = el.form.elements[n]; if (f && f.length && !f.tagName) { for (var i = 0; i < f.length; i++) f[i].disabled = true; } else if (f) f.disabled = true; });
+    el.form.submit();
+    return;
+  }
+  // In the phone filter panel, wait for "Show results"; everywhere else, apply right away.
+  var inPanel = el.closest(".sidebar") && !window.matchMedia("(min-width: 861px)").matches;
+  if (el.hasAttribute("data-autosubmit") && !inPanel) el.form.submit();
 });
 document.addEventListener("click", function (e) {
   var a = e.target && e.target.closest ? e.target.closest(".gallery-thumb") : null;

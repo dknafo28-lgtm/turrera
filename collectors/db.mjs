@@ -1,5 +1,6 @@
 // Shared database helpers for all collectors.
 import { createClient } from "@supabase/supabase-js";
+import { enrich } from "./categorize.mjs";
 
 export function getWriteClient() {
   const url = process.env.SUPABASE_URL;
@@ -12,9 +13,19 @@ export function getWriteClient() {
 export async function upsertLots(supabase, lots, batchSize = 500) {
   let saved = 0;
   for (let i = 0; i < lots.length; i += batchSize) {
-    const batch = lots.slice(i, i + batchSize);
-    const { error } = await supabase.from("lots").upsert(batch, { onConflict: "id" });
-    if (error) throw new Error(`Supabase upsert failed: ${error.message}`);
+    // Full listings (with a title and category) get their type, boat length and year filled in.
+    const batch = lots.slice(i, i + batchSize).map((l) => (l.title !== undefined && l.category !== undefined ? enrich(l) : l));
+    // Rows with different columns go separately, so a missing column (like year) never blanks a saved value.
+    const groups = new Map();
+    for (const row of batch) {
+      const sig = Object.keys(row).sort().join(",");
+      if (!groups.has(sig)) groups.set(sig, []);
+      groups.get(sig).push(row);
+    }
+    for (const rows of groups.values()) {
+      const { error } = await supabase.from("lots").upsert(rows, { onConflict: "id" });
+      if (error) throw new Error(`Supabase upsert failed: ${error.message}`);
+    }
     saved += batch.length;
   }
   return saved;

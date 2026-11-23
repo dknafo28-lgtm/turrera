@@ -43,7 +43,7 @@ export const LENDERS: Record<LenderKey, Lender> = {
   },
 };
 
-const PERSONAL = new Set(["boats", "cars", "golf carts"]);
+const PERSONAL = new Set(["boats", "cars", "powersports"]);
 
 // Which lenders to show for a lot, best fit first.
 export function lendersFor(category: string | null | undefined, amount: number | null): LenderKey[] {

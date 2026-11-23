@@ -1,0 +1,497 @@
+[
+ {
+  "key": "boats",
+  "label": "Boats & marine",
+  "subs": [
+   {
+    "key": "boat-trailers",
+    "label": "Boat trailers"
+   },
+   {
+    "key": "pwc",
+    "label": "Jet skis & PWC"
+   },
+   {
+    "key": "pontoons",
+    "label": "Pontoons"
+   },
+   {
+    "key": "kayaks",
+    "label": "Kayaks, canoes & paddle"
+   },
+   {
+    "key": "boats",
+    "label": "Boats"
+   },
+   {
+    "key": "outboards",
+    "label": "Outboards & engines"
+   },
+   {
+    "key": "docks",
+    "label": "Docks, lifts & buoys"
+   },
+   {
+    "key": "marine-parts",
+    "label": "Marine electronics & gear"
+   }
+  ]
+ },
+ {
+  "key": "trucks",
+  "label": "Trucks & vans",
+  "subs": [
+   {
+    "key": "pickups",
+    "label": "Pickups"
+   },
+   {
+    "key": "bucket-utility",
+    "label": "Bucket & utility trucks"
+   },
+   {
+    "key": "dump-trucks",
+    "label": "Dump trucks"
+   },
+   {
+    "key": "plow-sweeper",
+    "label": "Plow, sander & sweeper trucks"
+   },
+   {
+    "key": "tires-parts",
+    "label": "Tires & truck parts"
+   },
+   {
+    "key": "garbage",
+    "label": "Garbage & roll-off"
+   },
+   {
+    "key": "wreckers",
+    "label": "Wreckers & rollbacks"
+   },
+   {
+    "key": "tankers",
+    "label": "Tankers & water trucks"
+   },
+   {
+    "key": "semis",
+    "label": "Semis & tractors"
+   },
+   {
+    "key": "military",
+    "label": "Military trucks"
+   },
+   {
+    "key": "vans",
+    "label": "Vans"
+   },
+   {
+    "key": "box-trucks",
+    "label": "Service, box & flatbed trucks"
+   },
+   {
+    "key": "work-trucks",
+    "label": "Other work trucks"
+   }
+  ]
+ },
+ {
+  "key": "cars",
+  "label": "Cars & SUVs",
+  "subs": [
+   {
+    "key": "police",
+    "label": "Former police vehicles"
+   },
+   {
+    "key": "minivans",
+    "label": "Minivans"
+   },
+   {
+    "key": "suvs",
+    "label": "SUVs"
+   },
+   {
+    "key": "ev-hybrid",
+    "label": "Electric & hybrid"
+   },
+   {
+    "key": "sedans",
+    "label": "Sedans & other cars"
+   }
+  ]
+ },
+ {
+  "key": "equipment",
+  "label": "Heavy equipment",
+  "subs": [
+   {
+    "key": "excavators",
+    "label": "Excavators"
+   },
+   {
+    "key": "loaders-backhoes",
+    "label": "Loaders & backhoes"
+   },
+   {
+    "key": "skid-steers",
+    "label": "Skid steers"
+   },
+   {
+    "key": "dozers-graders",
+    "label": "Dozers & graders"
+   },
+   {
+    "key": "paving",
+    "label": "Rollers, pavers & asphalt"
+   },
+   {
+    "key": "forklifts",
+    "label": "Forklifts & pallet jacks"
+   },
+   {
+    "key": "lifts-cranes",
+    "label": "Cranes & lifts"
+   },
+   {
+    "key": "snow",
+    "label": "Snow & ice"
+   },
+   {
+    "key": "mowers",
+    "label": "Mowers & landscaping"
+   },
+   {
+    "key": "tractors",
+    "label": "Tractors & farm"
+   },
+   {
+    "key": "sweepers",
+    "label": "Sweepers & scrubbers"
+   },
+   {
+    "key": "power",
+    "label": "Generators, compressors & pumps"
+   },
+   {
+    "key": "farm-turf",
+    "label": "Farm & turf equipment"
+   },
+   {
+    "key": "compaction",
+    "label": "Compactors & tampers"
+   },
+   {
+    "key": "attachments",
+    "label": "Attachments & parts"
+   },
+   {
+    "key": "other-equipment",
+    "label": "Other equipment"
+   }
+  ]
+ },
+ {
+  "key": "buses",
+  "label": "Buses",
+  "subs": [
+   {
+    "key": "school-buses",
+    "label": "School buses"
+   },
+   {
+    "key": "coaches",
+    "label": "Coaches"
+   },
+   {
+    "key": "shuttles",
+    "label": "Shuttle & transit"
+   }
+  ]
+ },
+ {
+  "key": "powersports",
+  "label": "Golf carts & powersports",
+  "subs": [
+   {
+    "key": "golf-carts",
+    "label": "Golf carts"
+   },
+   {
+    "key": "atv-utv",
+    "label": "ATVs & UTVs"
+   },
+   {
+    "key": "snowmobiles",
+    "label": "Snowmobiles"
+   },
+   {
+    "key": "motorcycles",
+    "label": "Motorcycles"
+   },
+   {
+    "key": "bikes",
+    "label": "Bikes & scooters"
+   }
+  ]
+ },
+ {
+  "key": "trailers",
+  "label": "Trailers & campers",
+  "subs": [
+   {
+    "key": "campers",
+    "label": "Campers & RVs"
+   },
+   {
+    "key": "equipment-trailers",
+    "label": "Equipment & lowboy"
+   },
+   {
+    "key": "enclosed",
+    "label": "Enclosed & cargo"
+   },
+   {
+    "key": "sign-boards",
+    "label": "Message & arrow boards"
+   },
+   {
+    "key": "utility-trailers",
+    "label": "Utility & flatbed"
+   }
+  ]
+ },
+ {
+  "key": "emergency",
+  "label": "Fire, EMS & police gear",
+  "subs": [
+   {
+    "key": "ambulances",
+    "label": "Ambulances"
+   },
+   {
+    "key": "fire-trucks",
+    "label": "Fire trucks"
+   },
+   {
+    "key": "lights-sirens",
+    "label": "Lights & sirens"
+   },
+   {
+    "key": "fire-gear",
+    "label": "Firefighting & rescue gear"
+   }
+  ]
+ },
+ {
+  "key": "aircraft",
+  "label": "Aircraft & parts",
+  "subs": [
+   {
+    "key": "airplanes",
+    "label": "Airplanes"
+   },
+   {
+    "key": "helicopters",
+    "label": "Helicopters"
+   },
+   {
+    "key": "aircraft-parts",
+    "label": "Parts, engines & tools"
+   }
+  ]
+ },
+ {
+  "key": "tools",
+  "label": "Tools & shop",
+  "subs": [
+   {
+    "key": "welders",
+    "label": "Welders"
+   },
+   {
+    "key": "woodworking",
+    "label": "Woodworking & machining"
+   },
+   {
+    "key": "auto-shop",
+    "label": "Automotive shop"
+   },
+   {
+    "key": "cleaning",
+    "label": "Pressure washers & cleaning"
+   },
+   {
+    "key": "safety",
+    "label": "Safety gear"
+   },
+   {
+    "key": "hand-power-tools",
+    "label": "Power & hand tools"
+   }
+  ]
+ },
+ {
+  "key": "industrial",
+  "label": "Industrial & warehouse",
+  "subs": [
+   {
+    "key": "material-handling",
+    "label": "Conveyors & material handling"
+   },
+   {
+    "key": "machinery",
+    "label": "Machinery"
+   },
+   {
+    "key": "tanks",
+    "label": "Tanks & containers"
+   },
+   {
+    "key": "supplies",
+    "label": "Industrial supplies"
+   }
+  ]
+ },
+ {
+  "key": "electronics",
+  "label": "Computers & electronics",
+  "subs": [
+   {
+    "key": "computers",
+    "label": "Computers & laptops"
+   },
+   {
+    "key": "printers",
+    "label": "Printers, copiers & toner"
+   },
+   {
+    "key": "networking",
+    "label": "Networking & servers"
+   },
+   {
+    "key": "radios-phones",
+    "label": "Radios & phones"
+   },
+   {
+    "key": "av-cameras",
+    "label": "Cameras & AV"
+   },
+   {
+    "key": "test",
+    "label": "Test & measurement"
+   }
+  ]
+ },
+ {
+  "key": "kitchen",
+  "label": "Kitchen & appliances",
+  "subs": [
+   {
+    "key": "refrigeration",
+    "label": "Refrigeration"
+   },
+   {
+    "key": "appliances",
+    "label": "Home appliances"
+   },
+   {
+    "key": "commercial-kitchen",
+    "label": "Commercial kitchen"
+   }
+  ]
+ },
+ {
+  "key": "medical",
+  "label": "Medical & lab",
+  "subs": [
+   {
+    "key": "lab",
+    "label": "Lab & scientific"
+   },
+   {
+    "key": "medical-equipment",
+    "label": "Medical equipment"
+   }
+  ]
+ },
+ {
+  "key": "furniture",
+  "label": "Office & furniture",
+  "subs": [
+   {
+    "key": "desks-tables",
+    "label": "Desks & tables"
+   },
+   {
+    "key": "chairs",
+    "label": "Chairs & seating"
+   },
+   {
+    "key": "safes",
+    "label": "Safes"
+   },
+   {
+    "key": "storage",
+    "label": "Cabinets, shelving & storage"
+   },
+   {
+    "key": "office",
+    "label": "Other office & furniture"
+   }
+  ]
+ },
+ {
+  "key": "building",
+  "label": "Building & materials",
+  "subs": [
+   {
+    "key": "doors-windows",
+    "label": "Doors & windows"
+   },
+   {
+    "key": "lighting-electrical",
+    "label": "Lighting & electrical"
+   },
+   {
+    "key": "plumbing-hvac",
+    "label": "Plumbing & HVAC"
+   },
+   {
+    "key": "buildings",
+    "label": "Buildings & containers"
+   },
+   {
+    "key": "fencing-signs",
+    "label": "Fencing & signs"
+   },
+   {
+    "key": "materials",
+    "label": "Lumber & materials"
+   }
+  ]
+ },
+ {
+  "key": "recreation",
+  "label": "Fitness, music & recreation",
+  "subs": [
+   {
+    "key": "fitness",
+    "label": "Fitness equipment"
+   },
+   {
+    "key": "music",
+    "label": "Musical instruments"
+   },
+   {
+    "key": "sports",
+    "label": "Sports & camping"
+   }
+  ]
+ },
+ {
+  "key": "other",
+  "label": "Everything else",
+  "subs": []
+ }
+]

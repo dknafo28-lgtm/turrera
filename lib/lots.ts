@@ -1,16 +1,16 @@
 import { getReadClient, type Lot } from "@/lib/supabase";
+import TAXONOMY from "./taxonomy.json";
 
 export const PAGE_SIZE = 48;
 
-export const CATEGORIES = [
-  { key: "trucks", label: "Trucks & vans" },
-  { key: "cars", label: "Cars" },
-  { key: "boats", label: "Boats" },
-  { key: "equipment", label: "Equipment" },
-  { key: "buses", label: "Buses" },
-  { key: "golf carts", label: "Golf carts" },
-  { key: "other", label: "Everything else" },
-];
+// Generated from collectors/categorize.mjs (node scripts/gen-taxonomy.mjs).
+export const CATEGORIES: { key: string; label: string }[] = TAXONOMY.map(({ key, label }) => ({ key, label }));
+export const TYPES: Record<string, { key: string; label: string }[]> = Object.fromEntries(TAXONOMY.map((c) => [c.key, c.subs]));
+export function typeLabel(category?: string | null, sub?: string | null) {
+  return TYPES[category ?? ""]?.find((t) => t.key === sub)?.label ?? null;
+}
+export const VEHICLE_CATEGORIES = ["boats", "trucks", "cars", "buses", "powersports", "trailers", "emergency", "equipment", "aircraft"];
+export const THIS_YEAR = new Date().getFullYear();
 
 export const STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
@@ -42,6 +42,7 @@ export const EASE: Record<string, string> = { easy: "Easy to sell", moderate: "E
 export type Params = {
   q?: string; category?: string; state?: string; max?: string; min?: string; sort?: string;
   ending?: string; source?: string; ease?: string; deal?: string; page?: string; view?: string;
+  sub?: string; ymin?: string; ymax?: string; lmin?: string; lmax?: string;
 };
 
 // Turns raw URL params into Params. Several ticked sites arrive as repeated
@@ -66,7 +67,7 @@ export type Result = { lots: Lot[]; total: number; error?: string };
 type Client = NonNullable<ReturnType<typeof getReadClient>>;
 
 const BASE = "id,source,title,description,category,current_bid,start_time,end_time,status,city,state,agency,photo_url,lot_url,first_seen";
-const FULL = `${BASE},est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source`;
+const FULL = `${BASE},subcategory,length_ft,year,est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source`;
 
 function words(q?: string) {
   return (q ?? "").toLowerCase().replace(/[^\p{L}\p{N}\s\-.]/gu, " ").split(/\s+/).filter(Boolean).slice(0, 6);
@@ -86,7 +87,15 @@ function applyFilters<T extends { or: any; eq: any; in: any; lte: any; gte: any;
   const min = Number(p.min);
   if (p.min && Number.isFinite(min) && min > 0) q = q.gte("current_bid", min);
   if (p.ending && ENDING[p.ending]) q = q.lte("end_time", new Date(Date.now() + ENDING[p.ending].hours * 3_600_000).toISOString());
+  const ymin = Number(p.ymin);
+  if (p.ymin && ymin >= 1900) q = q.gte("year", ymin);
+  const ymax = Number(p.ymax);
+  if (p.ymax && ymax >= 1900) q = q.lte("year", ymax);
   if (full) {
+    const lmin = Number(p.lmin);
+    if (p.lmin && lmin > 0) q = q.gte("length_ft", lmin);
+    const lmax = Number(p.lmax);
+    if (p.lmax && lmax > 0) q = q.lte("length_ft", lmax);
     if (p.ease === "easy") q = q.eq("sell_ease", "easy");
     if (p.ease === "moderate") q = q.in("sell_ease", ["easy", "moderate"]);
     if (p.deal === "1") q = q.gt("spread", 0).gt("current_bid", 0);
@@ -98,7 +107,7 @@ export async function loadLots(p: Params): Promise<Result> {
   const supabase = getReadClient();
   if (!supabase) return { lots: [], total: 0, error: "The database isn't connected yet. Add the Supabase keys in Vercel." };
   const first = await query(supabase, p, true);
-  if (first.error && /does not exist|spread|sell_ease/i.test(first.error)) {
+  if (first.error && /does not exist|spread|sell_ease|subcategory|length_ft/i.test(first.error)) {
     return query(supabase, { ...p, sort: p.sort === "spread" ? "ending" : p.sort }, false);
   }
   return first;
@@ -109,7 +118,10 @@ async function query(supabase: Client, p: Params, full: boolean): Promise<Result
   const page = Math.max(1, Math.min(200, Number(p.page) || 1));
   let q = supabase.from("lots").select(full ? FULL : BASE, { count: "exact" });
   q = applyFilters(q, p, full);
-  if (p.category && CATEGORIES.some((c) => c.key === p.category)) q = q.eq("category", p.category);
+  if (p.category && CATEGORIES.some((c) => c.key === p.category)) {
+    q = q.eq("category", p.category);
+    if (full && p.sub && TYPES[p.category]?.some((t) => t.key === p.sub)) q = q.eq("subcategory", p.sub);
+  }
   const { data, error, count } = await q
     .order(sort.column, { ascending: sort.ascending, nullsFirst: false })
     .order("id", { ascending: true })
@@ -139,6 +151,20 @@ export async function categoryCounts(p: Params): Promise<Record<string, number>>
   return Object.fromEntries(entries);
 }
 
+// Counts per type within the chosen category, under the current filters.
+export async function typeCounts(p: Params): Promise<Record<string, number>> {
+  const supabase = getReadClient();
+  const types = TYPES[p.category ?? ""];
+  if (!supabase || !types?.length) return {};
+  const entries = await Promise.all(types.map(async (t) => {
+    let q = supabase.from("lots").select("id", { count: "exact", head: true });
+    q = applyFilters(q, p, true).eq("category", p.category).eq("subcategory", t.key);
+    const { count } = await q;
+    return [t.key, count ?? 0] as const;
+  }));
+  return Object.fromEntries(entries);
+}
+
 export const SOURCE_SHORT: Record<string, string> = {
   gsa: "GSA Auctions", publicsurplus: "Public Surplus", municibid: "Municibid", jjkane: "JJ Kane",
   govdeals: "GovDeals", govplanet: "GovPlanet", cws: "CWS Marketing",
@@ -150,12 +176,12 @@ async function list(build: (q: any) => any, columns = FULL, limit = 12): Promise
   for (const cols of [columns, BASE]) {
     const { data, error } = await build(supabase.from("lots").select(cols)).limit(limit);
     if (!error) return (data ?? []) as unknown as Lot[];
-    if (!/does not exist|spread|sell_ease/i.test(error.message)) return [];
+    if (!/does not exist|spread|sell_ease|subcategory|length_ft/i.test(error.message)) return [];
   }
   return [];
 }
 
-const MAIN = ["trucks", "cars", "boats", "equipment", "buses", "golf carts"];
+const MAIN = ["boats", "trucks", "cars", "equipment", "buses", "powersports", "trailers", "emergency"];
 
 export async function loadHome() {
   const now = new Date().toISOString();
@@ -163,16 +189,17 @@ export async function loadHome() {
   const photoFor = (cat: string) => list((q) => q.eq("category", cat).gte("end_time", now).not("photo_url", "is", null)
     .in("source", ["publicsurplus", "municibid", "jjkane"]).order("current_bid", { ascending: false, nullsFirst: false }), BASE, 1);
   const tilesP = Promise.all(CATEGORIES.filter((c) => c.key !== "other").map(async (c) => [c.key, (await photoFor(c.key))[0]?.photo_url ?? null] as const));
-  const [endingSoon, deals, newest, counts, sourceCounts, tiles] = await Promise.all([
+  const [endingSoon, deals, newest, counts, sourceCounts, tiles, marine] = await Promise.all([
     list((q) => q.gte("end_time", now).lte("end_time", day).in("category", MAIN).not("photo_url", "is", null).order("end_time", { ascending: true }), FULL, 10),
     list((q) => q.gte("end_time", now).gt("spread", 0).gt("current_bid", 0).in("category", MAIN).not("photo_url", "is", null).in("sell_ease", ["easy", "moderate"]).order("spread", { ascending: false }), FULL, 10),
     list((q) => q.gte("end_time", now).in("category", MAIN).not("photo_url", "is", null).order("first_seen", { ascending: false }), FULL, 10),
     categoryCounts({}),
     sourceCountsOpen(),
     tilesP,
+    list((q) => q.gte("end_time", now).eq("category", "boats").order("end_time", { ascending: true }), FULL, 12),
   ]);
   const endingToday = await countOpen((q) => q.lte("end_time", day));
-  return { endingSoon, deals, newest, counts, sourceCounts, tilePhotos: Object.fromEntries(tiles) as Record<string, string | null>, endingToday };
+  return { marine, endingSoon, deals, newest, counts, sourceCounts, tilePhotos: Object.fromEntries(tiles) as Record<string, string | null>, endingToday };
 }
 
 async function sourceCountsOpen(): Promise<Record<string, number>> {

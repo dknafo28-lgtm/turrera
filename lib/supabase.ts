@@ -6,6 +6,9 @@ export type Lot = {
   title: string | null;
   description: string | null;
   category: string | null;
+  subcategory?: string | null;
+  length_ft?: number | null;
+  year?: number | null;
   current_bid: number | null;
   start_time: string | null;
   end_time: string | null;

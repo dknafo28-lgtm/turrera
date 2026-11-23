@@ -3,14 +3,17 @@ import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
 import AlertForm from "@/components/AlertForm";
 import {
-  CATEGORIES, EASE, ENDING, PAGE_SIZE, SORTS, SOURCE_SHORT, STATES,
-  categoryCounts, loadLots, normalizeParams, sourcesOf, type Params,
+  CATEGORIES, EASE, ENDING, PAGE_SIZE, SORTS, SOURCE_SHORT, STATES, THIS_YEAR, TYPES, VEHICLE_CATEGORIES,
+  categoryCounts, loadLots, normalizeParams, sourcesOf, typeCounts, typeLabel, type Params,
 } from "@/lib/lots";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Search government surplus | Turrera" };
 
-const KEEP = ["q", "category", "state", "max", "min", "sort", "ending", "source", "ease", "deal", "view"] as const;
+const KEEP = ["q", "category", "sub", "ymin", "ymax", "lmin", "lmax", "state", "max", "min", "sort", "ending", "source", "ease", "deal", "view"] as const;
+
+const YEARS = Array.from({ length: THIS_YEAR + 2 - 1960 }, (_, i) => THIS_YEAR + 1 - i);
+const LENGTHS = [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 35, 40, 50, 60];
 
 function href(p: Params, changes: Partial<Params>, path = "/search") {
   const next: Record<string, string> = {};
@@ -27,7 +30,11 @@ function chips(p: Params) {
   const out: { label: string; value: string; remove: Partial<Params> }[] = [];
   if (p.q) out.push({ label: "Search", value: `“${p.q}”`, remove: { q: undefined } });
   const cat = CATEGORIES.find((c) => c.key === p.category);
-  if (cat) out.push({ label: "Category", value: cat.label, remove: { category: undefined } });
+  if (cat) out.push({ label: "Category", value: cat.label, remove: { category: undefined, sub: undefined, lmin: undefined, lmax: undefined } });
+  const type = typeLabel(p.category, p.sub);
+  if (type) out.push({ label: "Type", value: type, remove: { sub: undefined } });
+  if (p.ymin || p.ymax) out.push({ label: "Year", value: `${p.ymin ?? "any"} to ${p.ymax ?? "any"}`, remove: { ymin: undefined, ymax: undefined } });
+  if (p.lmin || p.lmax) out.push({ label: "Length", value: `${p.lmin ? `${p.lmin} ft` : "any"} to ${p.lmax ? `${p.lmax} ft` : "any"}`, remove: { lmin: undefined, lmax: undefined } });
   if (p.ending && ENDING[p.ending]) out.push({ label: "Ending", value: ENDING[p.ending].label.toLowerCase(), remove: { ending: undefined } });
   if (p.state) out.push({ label: "State", value: p.state, remove: { state: undefined } });
   if (p.min || p.max) out.push({ label: "Bid", value: `${p.min ? `$${Number(p.min).toLocaleString()}` : "$0"} to ${p.max ? `$${Number(p.max).toLocaleString()}` : "any"}`, remove: { min: undefined, max: undefined } });
@@ -49,14 +56,17 @@ function pages(current: number, total: number) {
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const p = normalizeParams(await searchParams);
   const pickedSites = sourcesOf(p);
-  const [{ lots, total, error }, counts] = await Promise.all([loadLots(p), categoryCounts(p)]);
+  const [{ lots, total, error }, counts, subCounts] = await Promise.all([loadLots(p), categoryCounts(p), typeCounts(p)]);
+  const types = TYPES[p.category ?? ""] ?? [];
+  const showYears = !p.category || VEHICLE_CATEGORIES.includes(p.category);
   const page = Math.max(1, Number(p.page) || 1);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const view = p.view === "list" ? "list" : "grid";
   const sortKey = SORTS[p.sort ?? ""] ? (p.sort as string) : "ending";
   const active = chips(p);
   const cat = CATEGORIES.find((c) => c.key === p.category);
-  const heading = p.q ? `Results for “${p.q}”` : cat ? cat.label : p.ending === "24h" ? "Ending in the next 24 hours" : p.deal === "1" ? "Under estimated market value" : "All open lots";
+  const type = typeLabel(p.category, p.sub);
+  const heading = p.q ? `Results for “${p.q}”` : type ? type : cat ? cat.label : p.ending === "24h" ? "Ending in the next 24 hours" : p.deal === "1" ? "Under estimated market value" : "All open lots";
   const allCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const from = total ? (page - 1) * PAGE_SIZE + 1 : 0;
   const to = Math.min(page * PAGE_SIZE, total);
@@ -70,12 +80,20 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <nav className="crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
             <span aria-hidden="true">/</span>
-            {cat ? <><a href="/search">All lots</a><span aria-hidden="true">/</span><span>{cat.label}</span></> : <span>Search</span>}
+            {cat ? <><a href="/search">All lots</a><span aria-hidden="true">/</span>{type ? <><a href={`/search?category=${encodeURIComponent(cat.key)}`}>{cat.label}</a><span aria-hidden="true">/</span><span>{type}</span></> : <span>{cat.label}</span>}</> : <span>Search</span>}
           </nav>
           <h1>{heading}</h1>
           <p className="results-count" aria-live="polite">
             {error ? error : total ? `${total.toLocaleString()} open lots` : "No open lots match"}
           </p>
+          {types.length ? (
+            <nav className="type-pills" aria-label={`${cat?.label} types`}>
+              <a href={href(p, { sub: undefined, page: undefined })} aria-current={!p.sub ? "page" : undefined}>All<em>{(counts[p.category ?? ""] ?? 0).toLocaleString()}</em></a>
+              {types.filter((t) => subCounts[t.key] || p.sub === t.key).map((t) => (
+                <a key={t.key} href={href(p, { sub: t.key, page: undefined })} aria-current={p.sub === t.key ? "page" : undefined}>{t.label}<em>{(subCounts[t.key] ?? 0).toLocaleString()}</em></a>
+              ))}
+            </nav>
+          ) : null}
         </div>
 
         <div className="results-layout">
@@ -91,13 +109,53 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </div>
 
               <fieldset>
-                <legend>Category</legend>
-                <label className="opt"><input type="radio" name="category" value="" defaultChecked={!p.category} /> <span>All categories</span><em>{allCount.toLocaleString()}</em></label>
-                {CATEGORIES.map((c) => (
-                  <label className="opt" key={c.key}>
-                    <input type="radio" name="category" value={c.key} defaultChecked={p.category === c.key} /> <span>{c.label}</span><em>{(counts[c.key] ?? 0).toLocaleString()}</em>
-                  </label>
-                ))}
+                <legend><label htmlFor="f-category">Category</label></legend>
+                <select id="f-category" name="category" defaultValue={p.category ?? ""} data-autosubmit-clear="sub,lmin,lmax">
+                  <option value="">All categories ({allCount.toLocaleString()})</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c.key} value={c.key}>{c.label} ({(counts[c.key] ?? 0).toLocaleString()})</option>
+                  ))}
+                </select>
+                {types.length ? (
+                  <>
+                    <label htmlFor="f-sub" className="field-label">Type</label>
+                    <select id="f-sub" name="sub" defaultValue={p.sub ?? ""} data-autosubmit>
+                      <option value="">All {cat?.label.toLowerCase()} ({(counts[p.category ?? ""] ?? 0).toLocaleString()})</option>
+                      {types.map((t) => (
+                        <option key={t.key} value={t.key} disabled={!subCounts[t.key] && p.sub !== t.key}>{t.label} ({(subCounts[t.key] ?? 0).toLocaleString()})</option>
+                      ))}
+                    </select>
+                  </>
+                ) : null}
+                {p.category === "boats" ? (
+                  <>
+                    <span className="field-label">Boat length</span>
+                    <div className="range">
+                      <label><span className="visually-hidden">Shortest</span>
+                        <select name="lmin" defaultValue={p.lmin ?? ""} data-autosubmit><option value="">Min ft</option>{LENGTHS.map((n) => <option key={n} value={n}>{n} ft</option>)}</select>
+                      </label>
+                      <span aria-hidden="true">to</span>
+                      <label><span className="visually-hidden">Longest</span>
+                        <select name="lmax" defaultValue={p.lmax ?? ""} data-autosubmit><option value="">Max ft</option>{LENGTHS.map((n) => <option key={n} value={n}>{n} ft</option>)}</select>
+                      </label>
+                    </div>
+                    <p className="fieldset-note">Length comes from the listing title, so boats without one listed won&apos;t show when this is set.</p>
+                  </>
+                ) : null}
+                {showYears ? (
+                  <>
+                    <span className="field-label">Year</span>
+                    <div className="range">
+                      <label><span className="visually-hidden">From year</span>
+                        <select name="ymin" defaultValue={p.ymin ?? ""} data-autosubmit><option value="">From</option>{YEARS.map((y) => <option key={y} value={y}>{y}</option>)}</select>
+                      </label>
+                      <span aria-hidden="true">to</span>
+                      <label><span className="visually-hidden">To year</span>
+                        <select name="ymax" defaultValue={p.ymax ?? ""} data-autosubmit><option value="">To</option>{YEARS.map((y) => <option key={y} value={y}>{y}</option>)}</select>
+                      </label>
+                    </div>
+                  </>
+                ) : null}
               </fieldset>
 
               <fieldset>

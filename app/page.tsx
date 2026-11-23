@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
 import NewsletterForm from "@/components/NewsletterForm";
-import { CATEGORIES, SOURCE_SHORT, STATES, loadHome, type Params } from "@/lib/lots";
+import { CATEGORIES, SOURCE_SHORT, STATES, TYPES, loadHome, type Params } from "@/lib/lots";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
   const qs = new URLSearchParams(Object.entries(p).filter(([, v]) => typeof v === "string" && v) as [string, string][]).toString();
   if (qs) redirect(`/search?${qs}`);
 
-  const { endingSoon, deals, newest, counts, sourceCounts, tilePhotos, endingToday } = await loadHome();
+  const { marine, endingSoon, deals, newest, counts, sourceCounts, tilePhotos, endingToday } = await loadHome();
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
@@ -66,6 +66,19 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
             ))}
           </ul>
         </section>
+
+        {marine.length ? (
+          <section className="home-section" aria-labelledby="marine-h">
+            <div className="section-head">
+              <h2 id="marine-h">Boats &amp; marine</h2>
+              <a href="/search?category=boats">All boats, outboards, jet skis and gear</a>
+            </div>
+            <ul className="type-pills home-types">
+              {TYPES.boats.map((t) => <li key={t.key}><a href={`/search?category=boats&sub=${t.key}`}>{t.label}</a></li>)}
+            </ul>
+            <div className="rail">{marine.map((lot) => <LotCard key={lot.id} lot={lot} layout="rail" />)}</div>
+          </section>
+        ) : null}
 
         {endingSoon.length ? (
           <section className="home-section" aria-labelledby="ending-h">

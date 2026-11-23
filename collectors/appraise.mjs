@@ -10,10 +10,10 @@ import { getWriteClient } from "./db.mjs";
 const MODEL = process.env.APPRAISAL_MODEL ?? "claude-haiku-5-5";
 const MAX_PER_RUN = Number(process.env.APPRAISALS_PER_RUN ?? 400);
 const PARALLEL = 4;
-const CATEGORIES = ["cars", "trucks", "equipment"];
+const CATEGORIES = ["cars", "trucks", "equipment", "boats", "buses", "powersports", "trailers", "emergency"];
 const EASE = new Set(["easy", "moderate", "hard"]);
 
-export const SYSTEM_PROMPT = `You are an experienced US used-vehicle and equipment appraiser helping someone who buys at government surplus auctions and resells locally (Facebook Marketplace, Craigslist, eBay) or to dealers.
+export const SYSTEM_PROMPT = `You are an experienced US used-vehicle, boat and equipment appraiser helping someone who buys at government surplus auctions and resells locally (Facebook Marketplace, Craigslist, eBay) or to dealers.
 
 For the item described, estimate:
 1. Its realistic resale value in its CURRENT condition as described (not after repairs), as a private-party sale in the US, in whole US dollars. Use the year, make, model, mileage/hours, condition notes and anything else stated. Do not use the current auction bid.
