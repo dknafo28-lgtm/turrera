@@ -1,0 +1,37 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [comps]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx next build
+      - name: Screenshots
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          LOT=$(curl -s "http://localhost:3123/search?category=cars&sub=police" | grep -o 'href="/lot/[^"]*"' | head -1 | cut -d'"' -f2)
+          echo "LOT=$LOT"
+          curl -s "http://localhost:3123$LOT" | grep -o 'recently sold for</span><strong>[^<]*' | head -2
+          mkdir -p shots
+          CHROME=$(which google-chrome || which chromium)
+          $CHROME --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=8000 --window-size=1400,2400 --screenshot=shots/comps.png "http://localhost:3123$LOT" 2>/dev/null
+      - name: Save screenshots
+        if: always()
+        run: |
+          cp -r shots /tmp/shots || true
+          git config user.name "turrera-bot"; git config user.email "bot@turrera.com"
+          git checkout --orphan preview-shots
+          git rm -rq --cached . && rm -rf ./* .github .gitignore
+          cp /tmp/shots/*.png . && git add *.png && git commit -qm "Screenshots" && git push -f origin preview-shots

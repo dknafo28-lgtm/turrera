@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getReadClient, type Lot } from "@/lib/supabase";
-import { CATEGORIES, SOURCE_SHORT, similarLots, typeLabel } from "@/lib/lots";
+import { CATEGORIES, SOURCE_SHORT, similarLots, soldComps, typeLabel } from "@/lib/lots";
 import { closesAt, money, titleCase } from "@/lib/format";
 import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
@@ -45,7 +45,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
   const lot = await getLot((await params).id);
   const sp = await searchParams;
   if (!lot) notFound();
-  const similar = await similarLots(lot);
+  const [similar, comps] = await Promise.all([similarLots(lot), soldComps(lot as Parameters<typeof soldComps>[0])]);
 
   const photos = [...new Set((Array.isArray(lot.photos) && lot.photos.length ? lot.photos : [lot.photo_url]).filter(Boolean) as string[])];
   const dateOnly = lot.source === "jjkane";
@@ -193,6 +193,13 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               <div><dt>{bidLabel}</dt><dd className={soldFor !== null || money(lot.current_bid) ? "bidbox-bid" : "bidbox-bid-text"}>{bid}</dd></div>
               {hasValue ? <div><dt>Estimated value</dt><dd>{money(lot.est_low)} to {money(lot.est_high)}</dd></div> : null}
             </dl>
+            {comps && soldFor === null ? (
+              <a className="bidbox-comps" href="#sold-comps">
+                <span>Similar {comps.basis} recently sold for</span>
+                <strong>{money(comps.low)} to {money(comps.high)}</strong>
+                <span>Median {money(comps.median)}, from {comps.lots.length < 8 ? comps.lots.length : "8+"} sales</span>
+              </a>
+            ) : null}
             {deal !== null ? (
               <p className={deal > 0 ? "bidbox-deal bidbox-deal-up" : "bidbox-deal bidbox-deal-down"}>
                 {deal > 0 ? `${money(deal)} under estimated value at the current bid` : `${money(-deal)} over estimated value at the current bid`}
@@ -216,6 +223,17 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             </p>
           </aside>
         </div>
+
+        {comps ? (
+          <section className="home-section lot-similar" id="sold-comps" aria-labelledby="comps-h">
+            <div className="section-head">
+              <h2 id="comps-h">What similar {comps.basis} sold for</h2>
+              <a href={`/search?status=sold&category=${encodeURIComponent(lot.category ?? "")}${lot.subcategory ? `&sub=${lot.subcategory}` : ""}`}>See all sold prices</a>
+            </div>
+            <p className="section-note">Final prices from government auctions in the last 12 months. Middle half sold for {money(comps.low)} to {money(comps.high)}; median {money(comps.median)}. Condition and location vary, so use these as a guide.</p>
+            <div className="rail">{comps.lots.map((s) => <LotCard key={s.id} lot={s} layout="rail" />)}</div>
+          </section>
+        ) : null}
 
         {similar.length ? (
           <section className="home-section lot-similar" aria-labelledby="similar-h">
