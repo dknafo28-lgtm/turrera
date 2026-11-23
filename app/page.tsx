@@ -163,11 +163,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           </section>
         ) : null}
 
-        <section className="home-section">
-          <h2>Browse by state</h2>
-          <ul className="state-grid">
-            {STATES.map((s) => <li key={s}><a href={`/search?state=${s}`}>{s}</a></li>)}
-          </ul>
+        <section className="home-section home-split home-split-one">
+          <div>
+            <h2>Browse by state</h2>
+            <ul className="state-grid">
+              {STATES.map((s) => <li key={s}><a href={`/search?state=${s}`}>{s}</a></li>)}
+            </ul>
+          </div>
         </section>
       </main>
     </>
