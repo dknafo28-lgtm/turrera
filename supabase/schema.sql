@@ -267,3 +267,21 @@ begin
 end $$;
 revoke all on function public.request_financing(text, text, text, text, text, text, text, numeric, text, text, text, boolean) from public;
 grant execute on function public.request_financing(text, text, text, text, text, text, text, numeric, text, text, text, boolean) to anon, authenticated, service_role;
+
+-- Clicks out to lending partners, to show them volume when negotiating referral fees.
+create table if not exists public.finance_clicks (
+  id         bigint generated always as identity primary key,
+  lender     text not null,
+  lot_id     text,
+  amount     numeric,
+  created_at timestamptz not null default now()
+);
+grant all on public.finance_clicks to service_role;
+alter table public.finance_clicks enable row level security;
+
+create or replace function public.log_finance_click(p_lender text, p_lot_id text, p_amount numeric)
+returns void language sql security definer set search_path = public as $$
+  insert into finance_clicks (lender, lot_id, amount) values (left(p_lender, 30), left(p_lot_id, 200), p_amount);
+$$;
+revoke all on function public.log_finance_click(text, text, numeric) from public;
+grant execute on function public.log_finance_click(text, text, numeric) to anon, authenticated, service_role;

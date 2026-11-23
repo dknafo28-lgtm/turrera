@@ -55,6 +55,10 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     db.from("saved_searches").select("id", { count: "exact", head: true }).eq("active", true),
     db.from("finance_requests").select("*").order("created_at", { ascending: false }).limit(100),
   ]);
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const clicks = await db.from("finance_clicks").select("lender").gte("created_at", since).limit(10000);
+  const clickCounts: Record<string, number> = {};
+  for (const c of (clicks.data ?? []) as { lender: string }[]) clickCounts[c.lender] = (clickCounts[c.lender] ?? 0) + 1;
   const finRows = (fins.data ?? []) as Fin[];
   const buyRows = (buys.data ?? []) as Buy[];
   const sellRows = (sells.data ?? []) as Sell[];
@@ -126,7 +130,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         </section>
 
         <section className="page-section" id="finance">
-          <h2>Financing requests</h2>
+          <h2>Financing</h2>
+          <p className="fine">Clicks to lenders in the last 30 days: {Object.keys(clickCounts).length ? Object.entries(clickCounts).map(([k, n]) => `${k} ${n}`).join(", ") : "none yet"}. Share these numbers when you ask lenders for a referral deal.</p>
           {finRows.length ? (
             <div className="table-wrap">
               <table className="admin-table">

@@ -8,6 +8,7 @@ import LotCard from "@/components/LotCard";
 import Countdown from "@/components/Countdown";
 import WatchButton from "@/components/WatchButton";
 import BuyForm from "@/components/BuyForm";
+import FinanceOptions from "@/components/FinanceOptions";
 
 export const dynamic = "force-dynamic";
 
@@ -138,6 +139,10 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             ) : null}
 
             {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
+              <FinanceOptions compact lotId={lot.id} category={lot.category} amount={lot.est_high ?? (lot.current_bid && lot.current_bid > 0 ? lot.current_bid : null)} />
+            ) : null}
+
+            {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
               <BuyForm lotId={lot.id} site={site} missing={sp.buy === "missing"} suggested={lot.est_low ?? null} />
             ) : null}
           </div>
@@ -165,7 +170,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             <div className="bidbox-actions">
               <a className="btn btn-primary btn-block" href={bidLink} target="_blank" rel="noopener noreferrer">View and bid on {site}</a>
               <a className="btn btn-outline btn-block" href="#buy-for-me">Have us buy it for you</a>
-              <a className="btn btn-outline btn-block" href={`/financing?lot=${encodeURIComponent(lot.id)}#apply`}>Get pre-approved for financing</a>
+              <a className="btn btn-outline btn-block" href="#financing">Finance this lot</a>
               <WatchButton id={lot.id} />
             </div>
             <p className="fine">

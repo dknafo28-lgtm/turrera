@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     p_company: field(fd, "company", 160) || null, p_email: email, p_phone: field(fd, "phone", 40) || null,
     p_state: field(fd, "state", 40) || null, p_amount: Number.isFinite(amount) && amount > 0 ? amount : null,
     p_credit: field(fd, "credit", 40) || null, p_years: field(fd, "years", 40) || null,
-    p_what: field(fd, "what", 2000) || null, p_consent: fd.get("consent") === "yes",
+    p_what: [field(fd, "via", 20) ? `Asked for: ${field(fd, "via", 20)}` : "", field(fd, "what", 2000)].filter(Boolean).join(". ") || null, p_consent: fd.get("consent") === "yes",
   }) : { error: { message: "no db" } };
   if (error) return back(req, "/thanks?k=error");
   // When a lending partner is signed up, send people straight to their application too.

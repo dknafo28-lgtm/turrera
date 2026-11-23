@@ -3,17 +3,21 @@ import SiteHeader from "@/components/SiteHeader";
 import { STATES } from "@/lib/lots";
 import { getReadClient } from "@/lib/supabase";
 import { titleCase } from "@/lib/format";
+import FinanceOptions from "@/components/FinanceOptions";
+import { LENDERS, type LenderKey } from "@/lib/lenders";
 
 export const metadata: Metadata = { title: "Financing | Turrera" };
 export const dynamic = "force-dynamic";
 
-export default async function Financing({ searchParams }: { searchParams: Promise<{ lot?: string; missing?: string }> }) {
-  const { lot, missing } = await searchParams;
+export default async function Financing({ searchParams }: { searchParams: Promise<{ lot?: string; missing?: string; via?: string }> }) {
+  const { lot, missing, via } = await searchParams;
+  const viaLender = via && via in LENDERS ? LENDERS[via as LenderKey].name : null;
+  let category: string | null = null;
   let lotTitle: string | null = null;
   let suggested: number | null = null;
   if (lot) {
-    const { data } = (await getReadClient()?.from("lots").select("title,est_high,current_bid").eq("id", lot).maybeSingle()) ?? { data: null };
-    if (data) { lotTitle = titleCase(data.title); suggested = data.est_high ?? data.current_bid ?? null; }
+    const { data } = (await getReadClient()?.from("lots").select("title,est_high,current_bid,category").eq("id", lot).maybeSingle()) ?? { data: null };
+    if (data) { lotTitle = titleCase(data.title); suggested = data.est_high ?? (data.current_bid > 0 ? data.current_bid : null); category = data.category ?? null; }
   }
   return (
     <>
@@ -22,6 +26,11 @@ export default async function Financing({ searchParams }: { searchParams: Promis
         <nav className="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span>Financing</span></nav>
         <h1>Get pre-approved before you bid</h1>
         <p className="page-lead">Government auctions want payment within a few days of closing, so line up financing first. Tell us what you&apos;re buying and we&apos;ll connect you with a lender that finances used trucks, equipment and boats.</p>
+
+        <section className="page-section">
+          <h2>Choose a lender</h2>
+          <FinanceOptions lotId={lot} category={category} amount={suggested} />
+        </section>
 
         <div className="page-split">
           <section className="page-section">
@@ -41,11 +50,12 @@ export default async function Financing({ searchParams }: { searchParams: Promis
           </section>
 
           <section className="page-section form-card" id="apply" aria-labelledby="apply-h">
-            <h2 id="apply-h">Request a pre-approval</h2>
+            <h2 id="apply-h">{viaLender ? `Request ${viaLender} through us` : "Or let us match you"}</h2>
             {lotTitle ? <p className="fine">For: {lotTitle}</p> : null}
             {missing ? <p className="form-error" role="alert">Please add your name and a valid email.</p> : null}
             <form action="/api/finance" method="post" className="form-grid">
               <input type="text" name="website" className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+              {via ? <input type="hidden" name="via" value={via} /> : null}
               {lot ? <input type="hidden" name="lot_id" value={lot} /> : null}
               <label className="span-2">Buying as
                 <select name="buyer_type" defaultValue="business">
