@@ -47,8 +47,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
       <main className="home">
         <section className="hero">
           <div className="hero-inner">
-            <h1>Buy government boats, trucks and equipment for less</h1>
-            <p className="hero-sub">Every public auction in one search. We can bid and ship for you, worldwide.</p>
+            <h1>Direct from government agencies</h1>
             <ul className="popular" aria-label="Popular searches">
               {POPULAR.map((x) => <li key={x.href}><a href={x.href}>{x.label}</a></li>)}
             </ul>
