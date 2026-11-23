@@ -1,5 +1,4 @@
 import type { Lot } from "@/lib/supabase";
-import { SOURCE_SHORT } from "@/lib/lots";
 import { money, shortMoney, titleCase } from "@/lib/format";
 import Countdown from "./Countdown";
 import WatchButton from "./WatchButton";
@@ -56,7 +55,6 @@ export default function LotCard({ lot, layout = "grid" }: { lot: Lot; layout?: "
           </div>
         ) : null}
         {layout === "list" && lot.condition ? <p className="card-condition">{lot.condition}</p> : null}
-        <p className="card-source"><span>{SOURCE_SHORT[lot.source] ?? lot.source}</span>{lot.agency && layout !== "rail" ? <span className="card-agency">{titleCase(lot.agency)}</span> : null}</p>
       </div>
     </article>
   );

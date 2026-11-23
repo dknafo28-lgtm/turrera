@@ -48,15 +48,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
         <section className="hero">
           <div className="hero-inner">
             <h1>Buy government boats, trucks and equipment for less</h1>
-            <p className="hero-sub">Thousands of public auctions in one search, with estimated resale values. Bid yourself, or we&apos;ll bid, pay and ship it to you anywhere in the world.</p>
-            <p className="popular-label">Popular right now</p>
+            <p className="hero-sub">Every public auction in one search. We can bid and ship for you, worldwide.</p>
             <ul className="popular" aria-label="Popular searches">
               {POPULAR.map((x) => <li key={x.href}><a href={x.href}>{x.label}</a></li>)}
             </ul>
             <ul className="hero-proof">
-              <li><strong>{total.toLocaleString()}</strong><span>open lots right now</span></li>
-              <li><a href="/search?ending=24h"><strong>{endingToday.toLocaleString()}</strong><span>closing in the next 24 hours</span></a></li>
-              <li><strong>Worldwide</strong><span>shipping to the Caribbean, Europe, Alaska, Hawaii, Asia and the Middle East</span></li>
+              <li><strong>{total.toLocaleString()}</strong><span>open lots</span></li>
+              <li><a href="/search?ending=24h"><strong>{endingToday.toLocaleString()}</strong><span>ending in 24 hours</span></a></li>
+              <li><strong>Worldwide</strong><span>shipping</span></li>
             </ul>
           </div>
         </section>
