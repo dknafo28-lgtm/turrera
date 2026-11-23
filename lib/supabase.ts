@@ -7,6 +7,9 @@ export type Lot = {
   description: string | null;
   category: string | null;
   subcategory?: string | null;
+  final_price?: number | null;
+  bid_count?: number | null;
+  sold?: boolean | null;
   length_ft?: number | null;
   year?: number | null;
   current_bid: number | null;

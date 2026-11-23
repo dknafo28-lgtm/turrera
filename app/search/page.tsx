@@ -3,14 +3,14 @@ import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
 import AlertForm from "@/components/AlertForm";
 import {
-  CATEGORIES, EASE, ENDING, PAGE_SIZE, SORTS, SOURCE_SHORT, STATES, THIS_YEAR, TYPES, VEHICLE_CATEGORIES,
+  CATEGORIES, EASE, ENDING, PAGE_SIZE, SOLD_SORTS, SORTS, SOURCE_SHORT, STATES, THIS_YEAR, TYPES, VEHICLE_CATEGORIES,
   categoryCounts, loadLots, normalizeParams, sourcesOf, typeCounts, typeLabel, type Params,
 } from "@/lib/lots";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Search government surplus | Turrera" };
 
-const KEEP = ["q", "category", "sub", "ymin", "ymax", "lmin", "lmax", "state", "max", "min", "sort", "ending", "source", "ease", "deal", "view"] as const;
+const KEEP = ["status", "q", "category", "sub", "ymin", "ymax", "lmin", "lmax", "state", "max", "min", "sort", "ending", "source", "ease", "deal", "view"] as const;
 
 const YEARS = Array.from({ length: THIS_YEAR + 2 - 1960 }, (_, i) => THIS_YEAR + 1 - i);
 const LENGTHS = [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 35, 40, 50, 60];
@@ -28,6 +28,7 @@ function href(p: Params, changes: Partial<Params>, path = "/search") {
 
 function chips(p: Params) {
   const out: { label: string; value: string; remove: Partial<Params> }[] = [];
+  if (p.status === "sold") out.push({ label: "Showing", value: "sold items", remove: { status: undefined, sort: undefined } });
   if (p.q) out.push({ label: "Search", value: `“${p.q}”`, remove: { q: undefined } });
   const cat = CATEGORIES.find((c) => c.key === p.category);
   if (cat) out.push({ label: "Category", value: cat.label, remove: { category: undefined, sub: undefined, lmin: undefined, lmax: undefined } });
@@ -62,11 +63,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const page = Math.max(1, Number(p.page) || 1);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const view = p.view === "list" ? "list" : "grid";
-  const sortKey = SORTS[p.sort ?? ""] ? (p.sort as string) : "ending";
+  const sold = p.status === "sold";
+  const sortOptions = sold ? SOLD_SORTS : SORTS;
+  const sortKey = sortOptions[p.sort ?? ""] ? (p.sort as string) : sold ? "recent" : "ending";
   const active = chips(p);
   const cat = CATEGORIES.find((c) => c.key === p.category);
   const type = typeLabel(p.category, p.sub);
-  const heading = p.q ? `Results for “${p.q}”` : type ? type : cat ? cat.label : p.ending === "24h" ? "Ending in the next 24 hours" : p.deal === "1" ? "Under estimated market value" : "All open lots";
+  const baseHeading = p.q ? `Results for “${p.q}”` : type ? type : cat ? cat.label : p.ending === "24h" ? "Ending in the next 24 hours" : p.deal === "1" ? "Under estimated market value" : "All open lots";
+  const heading = sold ? (p.q || cat ? `Sold: ${baseHeading.replace(/^Results for /, "")}` : "Sold items and final prices") : baseHeading;
   const allCount = Object.values(counts).reduce((a, b) => a + b, 0);
   const from = total ? (page - 1) * PAGE_SIZE + 1 : 0;
   const to = Math.min(page * PAGE_SIZE, total);
@@ -84,7 +88,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           </nav>
           <h1>{heading}</h1>
           <p className="results-count" aria-live="polite">
-            {error ? error : total ? `${total.toLocaleString()} open lots` : "No open lots match"}
+            {error ? error : total ? `${total.toLocaleString()} ${sold ? "sold in the last 12 months" : "open lots"}` : sold ? "No sold items match yet" : "No open lots match"}
           </p>
           {types.length ? (
             <nav className="type-pills" aria-label={`${cat?.label} types`}>
@@ -107,6 +111,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 <h2>Filters</h2>
                 <label htmlFor="filters-open" className="sidebar-close">Close</label>
               </div>
+
+              <fieldset>
+                <legend>Show</legend>
+                <label className="opt"><input type="radio" name="status" value="" defaultChecked={!sold} /> <span>Open auctions</span></label>
+                <label className="opt"><input type="radio" name="status" value="sold" defaultChecked={sold} /> <span>Sold items (final prices)</span></label>
+              </fieldset>
 
               <fieldset>
                 <legend><label htmlFor="f-category">Category</label></legend>
@@ -158,6 +168,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 ) : null}
               </fieldset>
 
+              {!sold ? (
               <fieldset>
                 <legend>Closing</legend>
                 <label className="opt"><input type="radio" name="ending" value="" defaultChecked={!p.ending} /> <span>Any time</span></label>
@@ -165,9 +176,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   <label className="opt" key={k}><input type="radio" name="ending" value={k} defaultChecked={p.ending === k} /> <span>{e.label}</span></label>
                 ))}
               </fieldset>
+              ) : null}
 
               <fieldset>
-                <legend>Current bid</legend>
+                <legend>{sold ? "Sold price" : "Current bid"}</legend>
                 <div className="range">
                   <label><span className="visually-hidden">Minimum bid</span><input type="number" inputMode="numeric" name="min" min="0" step="100" placeholder="Min $" defaultValue={p.min ?? ""} /></label>
                   <span aria-hidden="true">to</span>
@@ -184,6 +196,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 </select>
               </fieldset>
 
+              {!sold ? (
               <fieldset>
                 <legend>Value</legend>
                 <label className="opt"><input type="checkbox" name="deal" value="1" defaultChecked={p.deal === "1"} /> <span>Bid is under estimated value</span></label>
@@ -192,6 +205,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   <label className="opt" key={k}><input type="radio" name="ease" value={k} defaultChecked={p.ease === k} /> <span>{label}</span></label>
                 ))}
               </fieldset>
+              ) : null}
 
               <fieldset>
                 <legend>Auction sites</legend>
@@ -218,7 +232,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 {KEEP.filter((k) => k !== "sort").map((k) => (p[k] ? <input key={k} type="hidden" name={k} value={String(p[k])} /> : null))}
                 <label htmlFor="sort">Sort by</label>
                 <select id="sort" name="sort" defaultValue={sortKey} data-autosubmit>
-                  {Object.entries(SORTS).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}
+                  {Object.entries(sortOptions).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}
                 </select>
                 <noscript><button type="submit" className="btn btn-outline">Sort</button></noscript>
               </form>

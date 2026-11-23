@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import { getAdminClient } from "@/lib/admin";
 import { money } from "@/lib/format";
+import ShowcaseForm from "@/components/ShowcaseForm";
+import type { Sale } from "@/lib/showcase";
 
 export const metadata: Metadata = { title: "Admin | Turrera", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -55,6 +57,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     db.from("saved_searches").select("id", { count: "exact", head: true }).eq("active", true),
     db.from("finance_requests").select("*").order("created_at", { ascending: false }).limit(100),
   ]);
+  const showcase = await db.from("showcase").select("*").order("created_at", { ascending: false }).limit(100);
+  const saleRows = (showcase.data ?? []) as Sale[];
   const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
   const clicks = await db.from("finance_clicks").select("lender").gte("created_at", since).limit(10000);
   const clickCounts: Record<string, number> = {};
@@ -151,6 +155,24 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
               </table>
             </div>
           ) : <p className="fine">No financing requests yet. They come from the Financing page and the button on each lot.</p>}
+        </section>
+
+        <section className="page-section" id="showcase">
+          <h2>Our sales (photos and reviews)</h2>
+          <p className="fine">These show on the public <a href="/our-sales">Our sales</a> page and the home page.</p>
+          <ShowcaseForm />
+          {saleRows.length ? (
+            <ul className="admin-sales">
+              {saleRows.map((r) => (
+                <li key={r.id}>
+                  {r.photos[0] ? <img src={r.photos[0]} alt="" /> : <span className="admin-sales-nophoto" />}
+                  <div><strong>{r.title}</strong><span className="fine">{[r.bought_price != null ? `won ${money(r.bought_price)}` : "", r.sold_price != null ? `sold ${money(r.sold_price)}` : "", r.sold_to ?? "", r.published ? "" : "hidden"].filter(Boolean).join(", ")}</span></div>
+                  <form action="/api/admin/showcase" method="post"><input type="hidden" name="id" value={r.id} /><input type="hidden" name="action" value={r.published ? "hide" : "show"} /><button className="btn btn-outline" type="submit">{r.published ? "Hide" : "Show"}</button></form>
+                  <form action="/api/admin/showcase" method="post"><input type="hidden" name="id" value={r.id} /><input type="hidden" name="action" value="delete" /><button className="btn btn-quiet" type="submit">Delete</button></form>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
 
         <section className="page-section" id="newsletter">

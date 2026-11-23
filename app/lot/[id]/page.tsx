@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 type FullLot = Lot & { photos: string[] | null; zip: string | null };
 
-const BASE = "id,source,title,description,category,subcategory,length_ft,current_bid,start_time,end_time,status,city,state,zip,agency,photo_url,lot_url,first_seen,year,make,model,est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source";
+const BASE = "id,source,title,description,category,subcategory,length_ft,final_price,bid_count,sold,current_bid,start_time,end_time,status,city,state,zip,agency,photo_url,lot_url,first_seen,year,make,model,est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source";
 const EASE_LABEL: Record<string, string> = { easy: "Easy to resell", moderate: "Moderate to resell", hard: "Hard to resell" };
 
 async function getLot(rawId: string): Promise<FullLot | null> {
@@ -22,7 +22,7 @@ async function getLot(rawId: string): Promise<FullLot | null> {
   if (!supabase) return null;
   let id = rawId;
   try { id = decodeURIComponent(rawId); } catch { /* keep as is */ }
-  for (const columns of [`${BASE},photos`, BASE, BASE.replace("subcategory,length_ft,", ""), BASE.replace("subcategory,length_ft,", "").replace(",year,make,model", "")]) {
+  for (const columns of [`${BASE},photos`, BASE, BASE.replace("subcategory,length_ft,final_price,bid_count,sold,", ""), BASE.replace("subcategory,length_ft,final_price,bid_count,sold,", "").replace(",year,make,model", "")]) {
     const { data, error } = await supabase.from("lots").select(columns).eq("id", id).maybeSingle();
     if (!error) return (data as unknown as FullLot) ?? null;
     if (!/does not exist/i.test(error.message)) return null;
@@ -55,7 +55,9 @@ export default async function LotPage({ params, searchParams }: { params: Promis
   const hasValue = lot.est_value !== null && lot.est_value !== undefined;
   const place = [lot.city ? titleCase(lot.city) : null, lot.state, lot.zip].filter(Boolean).join(", ");
   const closes = closesAt(lot.end_time, dateOnly);
-  const bid = money(lot.current_bid) ?? (dateOnly ? "Shown on JJ Kane" : "No bids yet");
+  const soldFor = lot.sold && lot.final_price ? lot.final_price : null;
+  const bid = soldFor !== null ? money(soldFor) as string : money(lot.current_bid) ?? (dateOnly ? "Shown on JJ Kane" : "No bids yet");
+  const bidLabel = soldFor !== null ? `Sold for${lot.bid_count ? ` after ${lot.bid_count} bid${lot.bid_count === 1 ? "" : "s"}` : ""}` : lot.end_time && new Date(lot.end_time).getTime() < Date.now() ? "Last bid we saw" : "Current bid";
   const deal = hasValue && (lot.current_bid ?? 0) > 0 && lot.spread !== null && lot.spread !== undefined ? lot.spread : null;
   const l = lot as FullLot & { year?: number | null; make?: string | null; model?: string | null };
   const vehicle = [l.year, l.make ? titleCase(l.make) : null, l.model ? titleCase(l.model) : null].filter(Boolean).join(" ");
@@ -188,7 +190,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               {closes ? <p>Closes {closes}{dateOnly ? ". Check JJ Kane for the exact time." : ""}</p> : null}
             </div>
             <dl className="bidbox-money">
-              <div><dt>Current bid</dt><dd className={money(lot.current_bid) ? "bidbox-bid" : "bidbox-bid-text"}>{bid}</dd></div>
+              <div><dt>{bidLabel}</dt><dd className={soldFor !== null || money(lot.current_bid) ? "bidbox-bid" : "bidbox-bid-text"}>{bid}</dd></div>
               {hasValue ? <div><dt>Estimated value</dt><dd>{money(lot.est_low)} to {money(lot.est_high)}</dd></div> : null}
             </dl>
             {deal !== null ? (
@@ -226,7 +228,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
         ) : null}
 
         <div className="mobile-bidbar">
-          <div><span>Current bid</span><strong>{bid}</strong></div>
+          <div><span>{bidLabel}</span><strong>{bid}</strong></div>
           <div className="mobile-bidbar-actions"><a className="btn btn-outline" href="#buy-for-me">Buy for me</a><a className="btn btn-primary" href={bidLink} target="_blank" rel="noopener noreferrer">Bid</a></div>
         </div>
       </main>
