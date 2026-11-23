@@ -122,7 +122,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </nav>
             </div>
             <div className="footer-col">
-              <h2>Weekly deals list</h2>
+              <h2>Auctions this week</h2>
               <NewsletterForm source="footer" tone="dark" />
             <p>Listings come from GSA Auctions, Public Surplus, Municibid, JJ Kane government sellers and your auction alerts. Turrera isn&apos;t affiliated with the selling agencies. Check the listing and recent sales before you bid.</p>
             </div>

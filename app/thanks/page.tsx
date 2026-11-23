@@ -21,7 +21,7 @@ export default async function Thanks({ searchParams }: { searchParams: Promise<Q
     } catch { /* show the unpaid message */ }
   }
   const msg: Record<string, { h: string; p: string }> = {
-    sub: { h: "You're on the list", p: "The weekly list of the best government surplus deals goes out every week. Every email has a one-click unsubscribe link." },
+    sub: { h: "You're on the list", p: "Every Monday you'll get the standout government auctions closing that week, day by day. Every email has a one-click unsubscribe link." },
     alert: { h: "Alert created", p: "We check for new matching lots every 4 hours and email you when there are new ones." },
     sell: { h: "Thanks, we'll be in touch", p: "David will look over what you sent and get back to you within one business day with next steps." },
     buy: paid

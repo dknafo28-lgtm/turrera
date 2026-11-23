@@ -16,7 +16,7 @@ export default function BuyForm({ lotId, site, missing = false, suggested }: { l
         <label className="span-2">Ship to<input name="destination" placeholder="Zip code, city and country, or port" /></label>
         <label className="span-2">Anything we should know<textarea name="notes" rows={3} /></label>
         <label className="check span-2"><input type="checkbox" name="terms" value="yes" required /> <span>I agree to the <a href="/buy-for-me#terms">terms</a>: the item is sold as is, the deposit is non-refundable if we win, and the fee is {BROKER_FEE_TEXT}.</span></label>
-        <label className="check span-2"><input type="checkbox" name="newsletter" value="yes" /> <span>Email me the weekly list of deals</span></label>
+        <label className="check span-2"><input type="checkbox" name="newsletter" value="yes" /> <span>Email me the upcoming auctions every Monday</span></label>
         <div className="span-2 form-actions">
           <button type="submit" className="btn btn-primary">Request this lot</button>
           <span className="fine">Deposit is 10% of your top bid (min $250, max $2,500).</span>
