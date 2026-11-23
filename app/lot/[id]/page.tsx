@@ -8,7 +8,6 @@ import LotCard from "@/components/LotCard";
 import Countdown from "@/components/Countdown";
 import WatchButton from "@/components/WatchButton";
 import InspectForm from "@/components/InspectForm";
-import { INSPECTION_FEE } from "@/lib/inspection";
 import BuyForm from "@/components/BuyForm";
 import FinanceOptions from "@/components/FinanceOptions";
 
@@ -180,7 +179,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             ) : null}
 
             {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
-              <InspectForm lotId={lot.id} place={[lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ")} missing={sp.inspect === "missing"} />
+              <InspectForm lotId={lot.id} category={lot.category} place={[lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ")} missing={sp.inspect === "missing"} />
             ) : null}
 
             {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
@@ -218,7 +217,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
               <a className="bidbox-inspect" href="#inspect">
                 <strong>Want more info?</strong>
-                <span>Hire a Turrera local inspector, ${INSPECTION_FEE.toLocaleString()}</span>
+                <span>Hire a Turrera local inspector</span>
               </a>
             ) : null}
             <p className="fine">
