@@ -47,6 +47,8 @@ export default function BuyForMe() {
           </ul>
         </section>
 
+        <p className="page-section">Need financing? <a href="/financing">Get pre-approved before you bid</a>, then we can bid up to your approval.</p>
+
         <p><a className="btn btn-primary" href="/search">Find a lot</a></p>
       </main>
     </>

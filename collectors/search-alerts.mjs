@@ -13,7 +13,9 @@ export function applySearch(query, p) {
   for (const w of words(p.q)) q = q.or(`title.ilike."%${w}%",description.ilike."%${w}%"`);
   if (p.category) q = q.eq("category", p.category);
   if (p.state) q = q.eq("state", p.state);
-  if (p.source) q = q.eq("source", p.source);
+  const sources = String(p.source ?? "").split(",").filter(Boolean);
+  if (sources.length === 1) q = q.eq("source", sources[0]);
+  else if (sources.length > 1) q = q.in("source", sources);
   if (Number(p.min) > 0) q = q.gte("current_bid", Number(p.min));
   if (Number(p.max) > 0) q = q.lte("current_bid", Number(p.max));
   if (p.deal === "1") q = q.gt("spread", 0).gt("current_bid", 0);

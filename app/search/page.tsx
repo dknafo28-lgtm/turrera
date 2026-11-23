@@ -4,7 +4,7 @@ import LotCard from "@/components/LotCard";
 import AlertForm from "@/components/AlertForm";
 import {
   CATEGORIES, EASE, ENDING, PAGE_SIZE, SORTS, SOURCE_SHORT, STATES,
-  categoryCounts, loadLots, type Params,
+  categoryCounts, loadLots, normalizeParams, sourcesOf, type Params,
 } from "@/lib/lots";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,8 @@ function chips(p: Params) {
   if (p.min || p.max) out.push({ label: "Bid", value: `${p.min ? `$${Number(p.min).toLocaleString()}` : "$0"} to ${p.max ? `$${Number(p.max).toLocaleString()}` : "any"}`, remove: { min: undefined, max: undefined } });
   if (p.ease && EASE[p.ease]) out.push({ label: "Resale", value: EASE[p.ease].toLowerCase(), remove: { ease: undefined } });
   if (p.deal === "1") out.push({ label: "Price", value: "under market value", remove: { deal: undefined } });
-  if (p.source && SOURCE_SHORT[p.source]) out.push({ label: "Site", value: SOURCE_SHORT[p.source], remove: { source: undefined } });
+  const sites = sourcesOf(p);
+  for (const s of sites) out.push({ label: "Site", value: SOURCE_SHORT[s] ?? s, remove: { source: sites.filter((x) => x !== s).join(",") || undefined } });
   return out;
 }
 
@@ -45,8 +46,9 @@ function pages(current: number, total: number) {
   return out;
 }
 
-export default async function SearchPage({ searchParams }: { searchParams: Promise<Params> }) {
-  const p = await searchParams;
+export default async function SearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const p = normalizeParams(await searchParams);
+  const pickedSites = sourcesOf(p);
   const [{ lots, total, error }, counts] = await Promise.all([loadLots(p), categoryCounts(p)]);
   const page = Math.max(1, Number(p.page) || 1);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -134,10 +136,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </fieldset>
 
               <fieldset>
-                <legend>Auction site</legend>
-                <label className="opt"><input type="radio" name="source" value="" defaultChecked={!p.source} /> <span>All sites</span></label>
+                <legend>Auction sites</legend>
+                <p className="fieldset-note">{pickedSites.length ? `${pickedSites.length} selected` : "Showing all sites. Tick any to narrow it down."}</p>
                 {Object.entries(SOURCE_SHORT).map(([k, label]) => (
-                  <label className="opt" key={k}><input type="radio" name="source" value={k} defaultChecked={p.source === k} /> <span>{label}</span></label>
+                  <label className="opt" key={k}><input type="checkbox" name="source" value={k} defaultChecked={pickedSites.includes(k)} /> <span>{label}</span></label>
                 ))}
               </fieldset>
 

@@ -148,7 +148,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               {closes ? <p>Closes {closes}{dateOnly ? ". Check JJ Kane for the exact time." : ""}</p> : null}
             </div>
             <dl className="bidbox-money">
-              <div><dt>Current bid</dt><dd className="bidbox-bid">{bid}</dd></div>
+              <div><dt>Current bid</dt><dd className={money(lot.current_bid) ? "bidbox-bid" : "bidbox-bid-text"}>{bid}</dd></div>
               {hasValue ? <div><dt>Estimated value</dt><dd>{money(lot.est_low)} to {money(lot.est_high)}</dd></div> : null}
             </dl>
             {deal !== null ? (
@@ -165,6 +165,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             <div className="bidbox-actions">
               <a className="btn btn-primary btn-block" href={bidLink} target="_blank" rel="noopener noreferrer">View and bid on {site}</a>
               <a className="btn btn-outline btn-block" href="#buy-for-me">Have us buy it for you</a>
+              <a className="btn btn-outline btn-block" href={`/financing?lot=${encodeURIComponent(lot.id)}#apply`}>Get pre-approved for financing</a>
               <WatchButton id={lot.id} />
             </div>
             <p className="fine">

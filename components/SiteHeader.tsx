@@ -23,6 +23,7 @@ export default function SiteHeader({ q = "", category = "" }: { q?: string; cate
         </form>
         <nav className="header-links" aria-label="Account">
           <a href="/buy-for-me" className="header-text-link">Buy for me</a>
+          <a href="/financing" className="header-text-link">Financing</a>
           <a href="/sell" className="header-text-link">Sell your fleet</a>
           <a href="/watchlist" className="header-watch">
             <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="M10 2.8l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.1l5-.7z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
@@ -40,6 +41,10 @@ export default function SiteHeader({ q = "", category = "" }: { q?: string; cate
             <a key={c.key} href={`/search?category=${encodeURIComponent(c.key)}`} aria-current={category === c.key ? "page" : undefined}>{c.label}</a>
           ))}
           <a href="/search">All lots</a>
+          <span className="header-cats-sep header-cats-mobile" aria-hidden="true" />
+          <a href="/buy-for-me" className="header-cats-mobile">Buy for me</a>
+          <a href="/financing" className="header-cats-mobile">Financing</a>
+          <a href="/sell" className="header-cats-mobile">Sell your fleet</a>
         </div>
       </nav>
     </header>

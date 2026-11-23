@@ -229,3 +229,41 @@ grant execute on function public.submit_sell_lead(text, text, text, text, text, 
 
 alter table public.buy_requests add column if not exists notified_at timestamptz;
 alter table public.sell_leads   add column if not exists notified_at timestamptz;
+
+-- Financing pre-approval requests. Turrera doesn't lend; these are passed to a lending partner.
+create table if not exists public.finance_requests (
+  id            uuid primary key default gen_random_uuid(),
+  lot_id        text,
+  lot_title     text,
+  buyer_type    text,                      -- business | personal
+  name          text not null,
+  company       text,
+  email         text not null,
+  phone         text,
+  state         text,
+  amount        numeric,
+  credit        text,                      -- self-reported range
+  years_in_business text,
+  what          text,                      -- what they want to buy
+  contact_consent boolean not null default false,
+  status        text not null default 'new', -- new | sent_to_lender | approved | declined | funded | closed
+  notified_at   timestamptz,
+  created_at    timestamptz not null default now()
+);
+grant all on public.finance_requests to service_role;
+alter table public.finance_requests enable row level security;
+
+create or replace function public.request_financing(p_lot_id text, p_buyer_type text, p_name text, p_company text, p_email text,
+  p_phone text, p_state text, p_amount numeric, p_credit text, p_years text, p_what text, p_consent boolean)
+returns void language plpgsql security definer set search_path = public as $$
+declare t text;
+begin
+  if p_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'invalid email'; end if;
+  if p_amount is not null and (p_amount <= 0 or p_amount > 50000000) then raise exception 'invalid amount'; end if;
+  if p_lot_id is not null then select title into t from lots where id = p_lot_id; end if;
+  insert into finance_requests (lot_id, lot_title, buyer_type, name, company, email, phone, state, amount, credit, years_in_business, what, contact_consent)
+  values (nullif(p_lot_id, ''), t, left(p_buyer_type, 20), left(p_name, 120), left(p_company, 160), lower(trim(p_email)), left(p_phone, 40),
+          left(p_state, 40), p_amount, left(p_credit, 40), left(p_years, 40), left(p_what, 2000), coalesce(p_consent, false));
+end $$;
+revoke all on function public.request_financing(text, text, text, text, text, text, text, numeric, text, text, text, boolean) from public;
+grant execute on function public.request_financing(text, text, text, text, text, text, text, numeric, text, text, text, boolean) to anon, authenticated, service_role;

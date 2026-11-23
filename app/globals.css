@@ -29,6 +29,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
+  overflow-x: clip;
   margin: 0; background: var(--page); color: var(--ink);
   font: 400 16px/1.5 var(--body); font-feature-settings: "tnum" 0;
   -webkit-font-smoothing: antialiased;
@@ -90,6 +91,7 @@ button, input, select { font: inherit; color: inherit; }
 }
 .header-cats a:hover { color: var(--white); }
 .header-cats a[aria-current="page"] { color: var(--white); border-bottom-color: var(--ice); }
+.header-cats .header-cats-mobile { display: none; }
 .header-cats-sep { flex: none; width: 1px; height: 18px; background: rgba(255,255,255,.2); margin: 0 6px; }
 
 /* Shared page widths */
@@ -324,6 +326,7 @@ button, input, select { font: inherit; color: inherit; }
 .bidbox-money { margin: 0; padding: 14px 0 4px; display: flex; flex-direction: column; gap: 10px; }
 .bidbox-money dt { font-size: 13px; color: var(--muted); }
 .bidbox-money dd { margin: 0; font-weight: 600; font-size: 17px; font-variant-numeric: tabular-nums; }
+.bidbox-money .bidbox-bid-text { font-size: 20px; font-weight: 700; }
 .bidbox-money .bidbox-bid { font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1.1; color: var(--ink); }
 .bidbox-deal { margin-top: 10px; padding: 8px 10px; border-radius: 3px; font-size: 14px; font-weight: 600; }
 .bidbox-deal-up { background: var(--green-tint); color: var(--green); }
@@ -426,7 +429,7 @@ button, input, select { font: inherit; color: inherit; }
 .mobile-bidbar-actions { display: flex; gap: 8px; }
 
 /* Admin */
-.admin-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 16px 0 0; }
+.admin-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 16px 0 0; }
 .admin-stats div { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column-reverse; }
 .admin-stats dt { font-size: 13px; color: var(--muted); }
 .admin-stats dd { margin: 0; font-family: var(--display); font-weight: 700; font-size: 28px; font-variant-numeric: tabular-nums; }
@@ -453,8 +456,11 @@ button, input, select { font: inherit; color: inherit; }
 
 /* Tablet and phone */
 @media (max-width: 860px) {
-  .header-bar { grid-template-columns: 1fr auto; gap: 10px 16px; padding: 10px 16px 12px; }
-  .header-search { grid-column: 1 / -1; grid-row: 2; max-width: none; }
+  .header-bar { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; padding: 10px 16px 12px; }
+  .header-search { grid-column: 1 / -1; grid-row: 2; max-width: none; min-width: 0; }
+  .header-search input { width: 0; }
+  /* iOS zooms into any field with text under 16px. */
+  input, select, textarea, .sort-form select, .status-form select { font-size: 16px !important; }
   .header-search select { display: none; }
   .header-search button span { display: none; }
   .header-search button { padding: 0 14px; }
@@ -531,7 +537,9 @@ button, input, select { font: inherit; color: inherit; }
   .lot { padding-bottom: 96px; }
 
   .site-footer-inner { grid-template-columns: 1fr; gap: 24px; padding: 24px 16px 32px; }
-  .header-text-link { display: none; }
+  .header-links .header-text-link { display: none; }
+  .header-cats .header-cats-mobile { display: block; }
+  .lot-layout { align-items: stretch; }
   .form-grid { grid-template-columns: 1fr; }
   .signup { flex-direction: column; }
   .home-band { grid-template-columns: 1fr; padding: 20px 18px; margin-left: -14px; margin-right: -14px; border-radius: 0; }
@@ -546,3 +554,5 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) { .gallery-strip { scroll-behavior: auto; } }
+
+.fieldset-note { font-size: 13px; color: var(--muted); margin: 0 0 4px; clear: left; }

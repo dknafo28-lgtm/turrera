@@ -44,6 +44,23 @@ export type Params = {
   ending?: string; source?: string; ease?: string; deal?: string; page?: string; view?: string;
 };
 
+// Turns raw URL params into Params. Several ticked sites arrive as repeated
+// ?source=a&source=b; they're kept as one comma-separated value.
+export function normalizeParams(raw: Record<string, string | string[] | undefined>): Params {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (v === undefined) continue;
+    const list = (Array.isArray(v) ? v : [v]).filter((x) => x !== "");
+    if (!list.length) continue;
+    out[k] = k === "source" ? [...new Set(list.flatMap((x) => x.split(",")))].join(",") : list[0];
+  }
+  return out as Params;
+}
+
+export function sourcesOf(p: Params): string[] {
+  return (p.source ?? "").split(",").filter((s) => s in SOURCES);
+}
+
 export type Result = { lots: Lot[]; total: number; error?: string };
 
 type Client = NonNullable<ReturnType<typeof getReadClient>>;
@@ -61,7 +78,9 @@ function applyFilters<T extends { or: any; eq: any; in: any; lte: any; gte: any;
   let q = query.or(`end_time.gte.${new Date().toISOString()},end_time.is.null`);
   for (const w of words(p.q)) q = q.or(`title.ilike."%${w}%",description.ilike."%${w}%"`);
   if (p.state && STATES.includes(p.state)) q = q.eq("state", p.state);
-  if (p.source && p.source in SOURCES) q = q.eq("source", p.source);
+  const sources = sourcesOf(p);
+  if (sources.length === 1) q = q.eq("source", sources[0]);
+  else if (sources.length > 1) q = q.in("source", sources);
   const max = Number(p.max);
   if (p.max && Number.isFinite(max) && max > 0) q = q.lte("current_bid", max);
   const min = Number(p.min);
