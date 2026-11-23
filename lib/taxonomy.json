@@ -4,6 +4,10 @@
   "label": "Boats & marine",
   "subs": [
    {
+    "key": "boats",
+    "label": "Boats"
+   },
+   {
     "key": "boat-trailers",
     "label": "Boat trailers"
    },
@@ -18,10 +22,6 @@
    {
     "key": "kayaks",
     "label": "Kayaks, canoes & paddle"
-   },
-   {
-    "key": "boats",
-    "label": "Boats"
    },
    {
     "key": "outboards",

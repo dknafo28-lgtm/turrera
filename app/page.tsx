@@ -112,7 +112,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
         <section className="home-section home-services">
           <a href="/buy-for-me" className="service-card">
             <strong>We buy it for you</strong>
-            <span>Can&apos;t bid or pick up yourself? We bid to your limit, pay, pick up and ship, including to the Bahamas and the Caribbean.</span>
+            <span>Can&apos;t bid or pick up yourself? We bid to your limit, pay, pick up and ship it to you anywhere in the world.</span>
             <em>How it works</em>
           </a>
           <a href="/sell" className="service-card">

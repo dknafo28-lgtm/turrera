@@ -11,7 +11,8 @@ export default function BuyForMe() {
       <main className="page">
         <nav className="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span>Buy for me</span></nav>
         <h1>We bid, pay, pick up and ship it for you</h1>
-        <p className="page-lead">Government auctions need a US account, quick payment and pickup within days. We handle all of it, so you can buy from anywhere, including the Bahamas and the Caribbean.</p>
+        <p className="page-lead">Government auctions need a US account, quick payment and pickup within days. We handle all of it, so you can buy from anywhere in the world.</p>
+        <p className="page-lead">We&apos;ve shipped boats, trucks and equipment all over the world, including across the Caribbean, Europe, Alaska, Hawaii, Asia and the Middle East.</p>
 
         <section className="page-section">
           <h2>How it works</h2>

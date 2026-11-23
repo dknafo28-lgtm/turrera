@@ -87,7 +87,7 @@ async function main() {
     heading: copy.subject,
     intro: copy.intro,
     body,
-    footer: `You're getting this because you signed up for Turrera's weekly deals list. Values are estimates; check the listing before you bid. Want us to bid, pay and ship for you, including to the Bahamas and the Caribbean? Reply to this email.<br><br><a href="{{UNSUBSCRIBE}}" style="color:#565c65">Unsubscribe</a>{{ADDRESS}}`,
+    footer: `You're getting this because you signed up for Turrera's weekly deals list. Values are estimates; check the listing before you bid. Want us to bid, pay and ship it for you, anywhere in the world? Reply to this email.<br><br><a href="{{UNSUBSCRIBE}}" style="color:#565c65">Unsubscribe</a>{{ADDRESS}}`,
   });
   const social = (copy.social ?? []).slice(0, 5).map((s) => {
     const lot = sections.flatMap((x) => x.lots).find((l) => l.id === s.lot_id);
