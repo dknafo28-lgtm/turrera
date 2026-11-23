@@ -12,6 +12,11 @@ export function applySearch(query, p) {
   let q = query;
   for (const w of words(p.q)) q = q.or(`title.ilike."%${w}%",description.ilike."%${w}%"`);
   if (p.category) q = q.eq("category", p.category);
+  if (p.category && p.sub) q = q.eq("subcategory", p.sub);
+  if (Number(p.ymin) > 0) q = q.gte("year", Number(p.ymin));
+  if (Number(p.ymax) > 0) q = q.lte("year", Number(p.ymax));
+  if (Number(p.lmin) > 0) q = q.gte("length_ft", Number(p.lmin));
+  if (Number(p.lmax) > 0) q = q.lte("length_ft", Number(p.lmax));
   if (p.state) q = q.eq("state", p.state);
   const sources = String(p.source ?? "").split(",").filter(Boolean);
   if (sources.length === 1) q = q.eq("source", sources[0]);

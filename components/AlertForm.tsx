@@ -1,6 +1,6 @@
 import type { Params } from "@/lib/lots";
 
-const KEYS = ["q", "category", "state", "min", "max", "source", "deal", "ease"] as const;
+const KEYS = ["q", "category", "sub", "ymin", "ymax", "lmin", "lmax", "state", "min", "max", "source", "deal", "ease"] as const;
 
 export default function AlertForm({ p, label }: { p: Params; label: string }) {
   return (

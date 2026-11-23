@@ -49,10 +49,10 @@ test("toLot tolerates missing fields", () => {
 test("categorize", () => {
   assert.equal(categorize("2002 Angler 22 center console boat"), "boats");
   assert.equal(categorize("Blue Bird School Bus"), "buses");
-  assert.equal(categorize("Club Car golf cart"), "golf carts");
+  assert.equal(categorize("Club Car golf cart"), "powersports");
   assert.equal(categorize("CAT 320 excavator"), "equipment");
   assert.equal(categorize("2015 Chevrolet Impala sedan"), "cars");
-  assert.equal(categorize("Office chairs, lot of 20"), "other");
+  assert.equal(categorize("Office chairs, lot of 20"), "furniture");
 });
 
 test("toLot handles the live API's camelCase fields", () => {
@@ -73,7 +73,7 @@ test("toLot handles the live API's camelCase fields", () => {
   assert.equal(lot.state, "NM");
   assert.equal(lot.zip, "85007");
   assert.equal(lot.description, "NOTE Tires need replacing");
-  assert.equal(lot.category, "equipment");
+  assert.equal(lot.category, "trailers");
 });
 
 test("category comes from the title, not pickup instructions in the description", () => {

@@ -4,7 +4,7 @@ import { esc, lotLink, lotRowHtml, mailConfig, money, shell, titleCase, closes, 
 
 const MODEL = "claude-haiku-5-5";
 const COLS = "id,source,title,description,category,current_bid,end_time,city,state,photo_url,lot_url,est_value,est_low,est_high,spread,sell_ease,condition";
-const MAIN = ["trucks", "cars", "boats", "equipment", "buses", "golf carts"];
+const MAIN = ["boats", "trucks", "cars", "equipment", "buses", "powersports", "trailers", "emergency"];
 
 async function pick(db) {
   const now = new Date();

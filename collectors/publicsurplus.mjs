@@ -18,9 +18,9 @@ export const PS_CATEGORIES = [
   { id: 4, name: "Motor Pool", fallback: "cars" },
   { id: 20, name: "Marine", fallback: "boats" },
   { id: 17, name: "Heavy Equipment", fallback: "equipment" },
-  { id: 6, name: "Industrial Equipment", fallback: "equipment" },
+  { id: 6, name: "Industrial Equipment", fallback: "industrial" },
   { id: 12, name: "Outdoor Equipment", fallback: "equipment" },
-  { id: 19, name: "Aviation", fallback: "other" },
+  { id: 19, name: "Aviation", fallback: "aircraft" },
 ];
 
 const decode = (s) =>
@@ -46,7 +46,7 @@ export function parseTimeLeft(value) {
   return found ? ms : null;
 }
 
-export function parseListingPage(html, { fallback = "other", now = Date.now() } = {}) {
+export function parseListingPage(html, { fallback = "other", catName = null, now = Date.now() } = {}) {
   const blocks = html.split(/<div class="auction-item" id="/).slice(1);
   const lots = [];
   for (const block of blocks) {
@@ -78,7 +78,7 @@ export function parseListingPage(html, { fallback = "other", now = Date.now() } 
       agency: null,
       photo_url: photo && photo.startsWith("http") ? photo : photo ? BASE + photo : null,
       lot_url: `${BASE}/sms/auction/view?auc=${id}`,
-      raw: { timeLeft: timeLeftText, price: priceText },
+      raw: { timeLeft: timeLeftText, price: priceText, ...(catName ? { category: catName } : {}) },
       last_updated: new Date(now).toISOString(),
     });
   }
@@ -115,7 +115,7 @@ export async function run() {
         break;
       }
       if (page === 0) last = lastPageIndex(html);
-      const lots = parseListingPage(html, { fallback: cat.fallback });
+      const lots = parseListingPage(html, { fallback: cat.fallback, catName: cat.name });
       if (!lots.length) break;
       saved += await upsertLots(supabase, lots);
     }

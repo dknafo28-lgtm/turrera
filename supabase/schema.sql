@@ -285,3 +285,8 @@ returns void language sql security definer set search_path = public as $$
 $$;
 revoke all on function public.log_finance_click(text, text, numeric) from public;
 grant execute on function public.log_finance_click(text, text, numeric) to anon, authenticated, service_role;
+
+-- Types within each category (e.g. boats -> outboards, pwc, pontoons) and boat length.
+alter table public.lots add column if not exists subcategory text;
+alter table public.lots add column if not exists length_ft numeric;
+create index if not exists lots_category_sub_idx on public.lots (category, subcategory);

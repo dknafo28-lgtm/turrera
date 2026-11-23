@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getReadClient, type Lot } from "@/lib/supabase";
-import { CATEGORIES, SOURCE_SHORT, similarLots } from "@/lib/lots";
+import { CATEGORIES, SOURCE_SHORT, similarLots, typeLabel } from "@/lib/lots";
 import { closesAt, money, titleCase } from "@/lib/format";
 import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 type FullLot = Lot & { photos: string[] | null; zip: string | null };
 
-const BASE = "id,source,title,description,category,current_bid,start_time,end_time,status,city,state,zip,agency,photo_url,lot_url,first_seen,year,make,model,est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source";
+const BASE = "id,source,title,description,category,subcategory,length_ft,current_bid,start_time,end_time,status,city,state,zip,agency,photo_url,lot_url,first_seen,year,make,model,est_value,est_low,est_high,comps_count,spread,condition,sell_ease,sell_note,value_source";
 const EASE_LABEL: Record<string, string> = { easy: "Easy to resell", moderate: "Moderate to resell", hard: "Hard to resell" };
 
 async function getLot(rawId: string): Promise<FullLot | null> {
@@ -22,7 +22,7 @@ async function getLot(rawId: string): Promise<FullLot | null> {
   if (!supabase) return null;
   let id = rawId;
   try { id = decodeURIComponent(rawId); } catch { /* keep as is */ }
-  for (const columns of [`${BASE},photos`, BASE, BASE.replace(",year,make,model", "")]) {
+  for (const columns of [`${BASE},photos`, BASE, BASE.replace("subcategory,length_ft,", ""), BASE.replace("subcategory,length_ft,", "").replace(",year,make,model", "")]) {
     const { data, error } = await supabase.from("lots").select(columns).eq("id", id).maybeSingle();
     if (!error) return (data as unknown as FullLot) ?? null;
     if (!/does not exist/i.test(error.message)) return null;
@@ -64,8 +64,9 @@ export default async function LotPage({ params, searchParams }: { params: Promis
     ["Location", place || "Not listed"],
     ["Seller", lot.agency ? titleCase(lot.agency) : "Not listed"],
     ["Auction site", site],
-    ["Category", cat?.label ?? "Not listed"],
+    ["Category", [cat?.label, typeLabel(lot.category, lot.subcategory)].filter(Boolean).join(": ") || "Not listed"],
   ];
+  if (lot.length_ft) facts.splice(1, 0, ["Length", `${lot.length_ft} ft`]);
   if (vehicle) facts.splice(2, 0, ["Year, make, model", vehicle]);
   const listed = fmtDate(lot.start_time) ?? fmtDate(lot.first_seen);
   if (listed) facts.push([lot.start_time ? "Auction opened" : "First seen", listed]);
@@ -80,6 +81,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
         <nav className="crumbs" aria-label="Breadcrumb">
           <a href="/">Home</a><span aria-hidden="true">/</span>
           {cat ? <><a href={`/search?category=${encodeURIComponent(cat.key)}`}>{cat.label}</a><span aria-hidden="true">/</span></> : null}
+          {cat && typeLabel(lot.category, lot.subcategory) ? <><a href={`/search?category=${encodeURIComponent(cat.key)}&sub=${lot.subcategory}`}>{typeLabel(lot.category, lot.subcategory)}</a><span aria-hidden="true">/</span></> : null}
           <span className="crumbs-current">{title}</span>
         </nav>
 

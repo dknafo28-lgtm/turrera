@@ -1,7 +1,7 @@
 import { getReadClient } from "@/lib/supabase";
 import { EMAIL_RE, back, field } from "@/lib/forms";
 
-const KEYS = ["q", "category", "state", "min", "max", "source", "deal", "ease"];
+const KEYS = ["q", "category", "sub", "ymin", "ymax", "lmin", "lmax", "state", "min", "max", "source", "deal", "ease"];
 
 export async function POST(req: Request) {
   const fd = await req.formData();
