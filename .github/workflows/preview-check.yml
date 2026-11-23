@@ -29,6 +29,12 @@ jobs:
                 if (!data || data.length < 1000) break;
               }
               for (const [c, subs] of Object.entries(out)) console.log("COUNT", c, Object.values(subs).reduce((a,b)=>a+b,0), JSON.stringify(subs));
+              for (const [c, s] of [["equipment","attachments"],["trucks","work-trucks"],["other",null],["tools","hand-power-tools"]]) {
+                let q = db.from("lots").select("source,title").eq("category", c).gt("end_time", now).limit(150);
+                q = s ? q.eq("subcategory", s) : q;
+                const { data } = await q;
+                for (const r of data ?? []) console.log("SAMPLE|" + c + "|" + r.source + "|" + r.title);
+              }
             });'
       - run: npx next build
       - name: Screenshots
