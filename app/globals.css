@@ -29,6 +29,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
+  overflow-x: clip;
   margin: 0; background: var(--page); color: var(--ink);
   font: 400 16px/1.5 var(--body); font-feature-settings: "tnum" 0;
   -webkit-font-smoothing: antialiased;
@@ -453,8 +454,11 @@ button, input, select { font: inherit; color: inherit; }
 
 /* Tablet and phone */
 @media (max-width: 860px) {
-  .header-bar { grid-template-columns: 1fr auto; gap: 10px 16px; padding: 10px 16px 12px; }
-  .header-search { grid-column: 1 / -1; grid-row: 2; max-width: none; }
+  .header-bar { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; padding: 10px 16px 12px; }
+  .header-search { grid-column: 1 / -1; grid-row: 2; max-width: none; min-width: 0; }
+  .header-search input { width: 0; }
+  /* iOS zooms into any field with text under 16px. */
+  input, select, textarea, .sort-form select, .status-form select { font-size: 16px !important; }
   .header-search select { display: none; }
   .header-search button span { display: none; }
   .header-search button { padding: 0 14px; }
