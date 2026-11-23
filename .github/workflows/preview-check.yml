@@ -1,0 +1,42 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [ebay-nav]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci && npm i --no-save puppeteer-core@23
+      - run: npx next build
+      - name: Screenshots
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          export CHROME=$(which google-chrome || which chromium)
+          LOT=$(node -e '
+            import("@supabase/supabase-js").then(async ({ createClient }) => {
+              const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+              const { data } = await db.from("lots").select("id,photos").eq("category","trucks").gt("end_time", new Date().toISOString()).not("photos","is",null).limit(300);
+              const best = (data ?? []).sort((a,b) => (b.photos?.length ?? 0) - (a.photos?.length ?? 0))[0];
+              console.log("/lot/" + encodeURIComponent(best.id));
+            });')
+          echo "LOT=$LOT"
+          node scripts/gallery-check.mjs http://localhost:3123 "$LOT"
+          node scripts/iphone-audit.mjs http://localhost:3123 / "$LOT" "/search?category=boats"
+      - name: Save screenshots
+        if: always()
+        run: |
+          cp -r shots /tmp/shots || true
+          git config user.name "turrera-bot"; git config user.email "bot@turrera.com"
+          git checkout --orphan preview-shots
+          git rm -rq --cached . && rm -rf ./* .github .gitignore
+          cp /tmp/shots/*.png . && git add *.png && git commit -qm "Screenshots" && git push -f origin preview-shots

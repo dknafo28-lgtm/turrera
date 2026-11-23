@@ -90,33 +90,66 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             <h1 className="lot-title">{title}</h1>
             <p className="lot-sub">{place || "Location not listed"}{lot.agency ? <>, sold by {titleCase(lot.agency)}</> : null}</p>
 
-            <section className="gallery" aria-label="Photos">
+            <section className="gallery" id="gallery" aria-label="Photos">
               {photos.length ? (
-                <>
-                  <div className="gallery-strip">
-                    {photos.map((src, i) => (
-                      <figure key={src} id={`photo-${i + 1}`} className="gallery-item">
-                        <img src={src} alt={`${title}, photo ${i + 1} of ${photos.length}`} loading={i === 0 ? "eager" : "lazy"} decoding="async" />
-                      </figure>
-                    ))}
-                  </div>
+                <div className={photos.length > 1 ? "gallery-layout" : "gallery-layout gallery-single"}>
                   {photos.length > 1 ? (
-                    <>
-                      <p className="gallery-count">{photos.length} photos<span className="gallery-swipe">, swipe to see more</span></p>
-                      <nav className="gallery-thumbs" aria-label="Choose a photo">
-                        {photos.map((src, i) => (
-                          <a key={src} href={`#photo-${i + 1}`} aria-label={`Photo ${i + 1}`} className="gallery-thumb">
-                            <img src={src} alt="" loading="lazy" decoding="async" />
-                          </a>
-                        ))}
-                      </nav>
-                    </>
+                    <nav className="gallery-thumbs" aria-label="Choose a photo">
+                      {photos.map((src, i) => (
+                        <a key={src} href={`#photo-${i + 1}`} aria-label={`Photo ${i + 1}`} className="gallery-thumb" aria-current={i === 0 ? "true" : undefined}>
+                          <img src={src} alt="" loading={i < 8 ? "eager" : "lazy"} decoding="async" />
+                        </a>
+                      ))}
+                    </nav>
                   ) : null}
-                </>
+                  <div className="gallery-main">
+                    <div className="gallery-strip" data-gallery>
+                      {photos.map((src, i) => (
+                        <figure key={src} id={`photo-${i + 1}`} className="gallery-item">
+                          <a href="#all-photos" aria-label="See all photos"><img src={src} alt={`${title}, photo ${i + 1} of ${photos.length}`} loading={i === 0 ? "eager" : "lazy"} decoding="async" /></a>
+                        </figure>
+                      ))}
+                    </div>
+                    {photos.length > 1 ? (
+                      <>
+                        <button type="button" className="gallery-arrow gallery-prev" data-gallery-step="-1" aria-label="Previous photo">
+                          <svg aria-hidden="true" viewBox="0 0 20 20" width="20" height="20"><path d="M12.5 4.5L7 10l5.5 5.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                        <button type="button" className="gallery-arrow gallery-next" data-gallery-step="1" aria-label="Next photo">
+                          <svg aria-hidden="true" viewBox="0 0 20 20" width="20" height="20"><path d="M7.5 4.5L13 10l-5.5 5.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                        <span className="gallery-counter" data-gallery-counter aria-live="polite">1 / {photos.length}</span>
+                        <a className="gallery-all" href="#all-photos">
+                          <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16"><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>
+                          See all {photos.length} photos
+                        </a>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
               ) : (
                 <div className="gallery-empty">No photos were included in the feed. The listing on {site} may have more.</div>
               )}
             </section>
+
+            {photos.length > 1 ? (
+              <div className="photo-grid" id="all-photos" role="dialog" aria-label={`All ${photos.length} photos`}>
+                <div className="photo-grid-top">
+                  <strong>{photos.length} photos</strong>
+                  <a href="#gallery" className="photo-grid-close" aria-label="Close photos">
+                    <svg aria-hidden="true" viewBox="0 0 20 20" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                    Close
+                  </a>
+                </div>
+                <div className="photo-grid-list">
+                  {photos.map((src, i) => (
+                    <figure key={src} className="photo-grid-item">
+                      <img src={src} alt={`${title}, photo ${i + 1} of ${photos.length}`} loading="lazy" decoding="async" />
+                    </figure>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             {lot.condition ? (
               <section className="lot-section">
