@@ -1,0 +1,54 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [categories]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci && npm i --no-save puppeteer-core@23
+      - name: Re-sort lots
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node collectors/recategorize.mjs
+          node -e '
+            import("@supabase/supabase-js").then(async ({ createClient }) => {
+              const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+              const now = new Date().toISOString(); const out = {};
+              for (let from = 0; ; from += 1000) {
+                const { data } = await db.from("lots").select("category,subcategory").gt("end_time", now).range(from, from + 999);
+                for (const r of data ?? []) { out[r.category] ??= {}; out[r.category][r.subcategory ?? "-"] = (out[r.category][r.subcategory ?? "-"] ?? 0) + 1; }
+                if (!data || data.length < 1000) break;
+              }
+              for (const [c, subs] of Object.entries(out)) console.log("COUNT", c, Object.values(subs).reduce((a,b)=>a+b,0), JSON.stringify(subs));
+            });'
+      - run: npx next build
+      - name: Screenshots
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          export CHROME=$(which google-chrome || which chromium)
+          node scripts/iphone-audit.mjs http://localhost:3123 "/search?category=boats" "/" "/search?category=boats&sub=outboards"
+          mkdir -p shots
+          $CHROME --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=8000 --window-size=1400,1800 --screenshot=shots/d-boats.png "http://localhost:3123/search?category=boats" 2>/dev/null
+          $CHROME --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=8000 --window-size=1400,1800 --screenshot=shots/d-trucks.png "http://localhost:3123/search?category=trucks&sub=pickups&ymin=2015" 2>/dev/null
+          grep -i "error" /tmp/next.log | grep -v DEP0 | head -5 || true
+      - name: Save screenshots
+        if: always()
+        run: |
+          cp -r shots /tmp/shots || true
+          git config user.name "turrera-bot"; git config user.email "bot@turrera.com"
+          git checkout --orphan preview-shots
+          git rm -rq --cached . && rm -rf ./* .github .gitignore
+          cp /tmp/shots/*.png . && git add *.png && git commit -qm "Screenshots" && git push -f origin preview-shots
