@@ -7,7 +7,7 @@ import { connect } from "./mcp.mjs";
 
 const HEADERS = { "User-Agent": "TurreraBot/1.0 (+https://turrera.com)" };
 const DELAY_MS = 4000;
-const MAX_PER_RUN = Number(process.env.RESULTS_PER_RUN ?? 150);
+const MAX_PER_RUN = Number(process.env.RESULTS_PER_RUN ?? 250);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function parsePublicSurplusResult(html) {

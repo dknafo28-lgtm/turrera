@@ -250,3 +250,31 @@ async function countOpen(build: (q: any) => any): Promise<number> { // eslint-di
   const { count } = await build(supabase.from("lots").select("id", { count: "exact", head: true }).gte("end_time", new Date().toISOString()));
   return count ?? 0;
 }
+
+export type SoldComps = { lots: Lot[]; low: number; median: number; high: number; basis: string };
+
+// Recently sold lots like this one, from the most specific match to the broadest that still finds 3.
+export async function soldComps(lot: Pick<Lot, "id" | "category" | "subcategory" | "year" | "length_ft" | "title"> & { make?: string | null }): Promise<SoldComps | null> {
+  if (!lot.category || lot.category === "other") return null;
+  const since = new Date(Date.now() - 365 * 86_400_000).toISOString();
+  const now = new Date().toISOString();
+  const make = (lot.make ?? "").trim().toLowerCase().replace(/[^a-z0-9 -]/g, "");
+  const typeName = typeLabel(lot.category, lot.subcategory)?.toLowerCase() ?? CATEGORIES.find((c) => c.key === lot.category)?.label.toLowerCase() ?? "items";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tries: { basis: string; build: (q: any) => any }[] = [];
+  const base = (q: any) => q.eq("category", lot.category).eq("sold", true).gt("final_price", 0).lt("end_time", now).gte("end_time", since).neq("id", lot.id); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const withSub = (q: any) => (lot.subcategory ? base(q).eq("subcategory", lot.subcategory) : base(q)); // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (make && lot.year) tries.push({ basis: `${lot.year - 3}–${lot.year + 3} ${make.replace(/\b\w/g, (c) => c.toUpperCase())} ${typeName}`, build: (q) => withSub(q).ilike("title", `%${make}%`).gte("year", lot.year! - 3).lte("year", lot.year! + 3) });
+  if (lot.category === "boats" && lot.length_ft) tries.push({ basis: `${Math.round(Number(lot.length_ft) - 4)}–${Math.round(Number(lot.length_ft) + 4)} ft boats`, build: (q) => withSub(q).gte("length_ft", Number(lot.length_ft) - 4).lte("length_ft", Number(lot.length_ft) + 4) });
+  if (lot.year) tries.push({ basis: `${lot.year - 4}–${lot.year + 4} ${typeName}`, build: (q) => withSub(q).gte("year", lot.year! - 4).lte("year", lot.year! + 4) });
+  if (lot.subcategory) tries.push({ basis: typeName, build: (q) => withSub(q) });
+  for (const t of tries) {
+    const rows = await list((q) => t.build(q).order("end_time", { ascending: false }), FULL, 40);
+    if (rows.length >= 3) {
+      const prices = rows.map((r) => Number(r.final_price)).filter((n) => n > 0).sort((a, b) => a - b);
+      const at = (p: number) => prices[Math.min(prices.length - 1, Math.max(0, Math.round((prices.length - 1) * p)))];
+      return { lots: rows.slice(0, 8), low: at(0.25), median: at(0.5), high: at(0.75), basis: t.basis };
+    }
+  }
+  return null;
+}
