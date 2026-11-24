@@ -143,7 +143,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           <div className="footer-legal">
-            <p>&copy; {new Date().getFullYear()} Turrera. All rights reserved. Turrera is an RDI company.</p>
+            <p>&copy; {new Date().getFullYear()} Turrera. All rights reserved. Turrera is an RDI brand.</p>
           </div>
         </footer>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT }} />

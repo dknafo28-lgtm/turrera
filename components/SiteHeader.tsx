@@ -9,7 +9,7 @@ const NAV = ["boats", "trucks", "cars", "equipment", "powersports"];
 export default function SiteHeader({ q = "", category = "" }: { q?: string; category?: string }) {
   return (
     <>
-    <div className="brand-strip"><p className="brand-strip-inner">An RDI company</p></div>
+    <div className="brand-strip"><p className="brand-strip-inner">An RDI brand</p></div>
     <header className="site-header">
       <div className="header-bar">
         <a href="/" className="brand" aria-label="Turrera home">
