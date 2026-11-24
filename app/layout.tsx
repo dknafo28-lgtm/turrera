@@ -53,6 +53,16 @@ function galleryGo(strip, index) {
   strip.scrollTo({ left: items[index].offsetLeft - strip.offsetLeft, behavior: "smooth" });
 }
 function galleryIndex(strip) { return Math.round(strip.scrollLeft / Math.max(1, strip.clientWidth)); }
+document.addEventListener("input", function (e) {
+  var t = e.target;
+  if (!t || !t.hasAttribute || !t.hasAttribute("data-deposit-input")) return;
+  var out = document.querySelector("[data-deposit-out]");
+  var n = Number(String(t.value).replace(/[$,\s]/g, ""));
+  if (!out) return;
+  if (!(n > 0)) { out.textContent = "10% of your max bid"; return; }
+  var d = Math.min(2500, Math.max(250, Math.round(n * 0.1 / 10) * 10));
+  out.textContent = "$" + d.toLocaleString("en-US");
+});
 document.addEventListener("click", function (e) {
   var t = e.target && e.target.closest ? e.target : null;
   if (!t) return;

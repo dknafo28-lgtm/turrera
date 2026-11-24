@@ -1,0 +1,42 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [bidflow]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - name: Apply database changes
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          sudo apt-get install -y -qq postgresql-client > /dev/null
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f supabase/schema.sql
+      - run: npm ci && npm i --no-save puppeteer-core@23
+      - run: npx next build
+      - name: Account check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          export CHROME=$(which google-chrome || which chromium)
+          node scripts/account-check.mjs http://localhost:3123
+          grep -iE "error" /tmp/next.log | grep -v DEP0 | head -10 || true
+      - name: Save screenshots
+        if: always()
+        run: |
+          cp -r shots /tmp/shots || true
+          git config user.name "turrera-bot"; git config user.email "bot@turrera.com"
+          git checkout --orphan preview-shots
+          git rm -rq --cached . && rm -rf ./* .github .gitignore
+          cp /tmp/shots/*.png . && git add *.png && git commit -qm "Screenshots" && git push -f origin preview-shots

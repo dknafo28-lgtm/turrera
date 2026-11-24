@@ -8,7 +8,7 @@ import LotCard from "@/components/LotCard";
 import Countdown from "@/components/Countdown";
 import WatchButton from "@/components/WatchButton";
 import InspectForm from "@/components/InspectForm";
-import BuyForm from "@/components/BuyForm";
+import BidStart from "@/components/BidStart";
 import FinanceOptions from "@/components/FinanceOptions";
 import ShareButtons from "@/components/ShareButtons";
 import { SITE_URL, WHATSAPP } from "@/lib/site";
@@ -210,8 +210,6 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               </section>
             ) : null}
 
-            {isOpen ? <BuyForm lotId={lot.id} site={site} missing={sp.buy === "missing"} suggested={null} whatsapp={WHATSAPP} title={title} /> : null}
-
             {isOpen ? <InspectForm lotId={lot.id} category={lot.category} place={[lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ")} missing={sp.inspect === "missing"} /> : null}
 
             {isOpen ? <FinanceOptions compact lotId={lot.id} category={lot.category} amount={lot.current_bid && lot.current_bid > 0 ? lot.current_bid : null} /> : null}
@@ -238,8 +236,8 @@ export default async function LotPage({ params, searchParams }: { params: Promis
                 {lot.sell_note && !/\$|\d{3}/.test(lot.sell_note) ? <p>{lot.sell_note}</p> : null}
               </div>
             ) : null}
+            {isOpen ? <BidStart lotId={lot.id} currentBid={lot.current_bid} /> : null}
             <div className="bidbox-actions">
-              {isOpen ? <a className="btn btn-primary btn-block" href="#buy-for-me">Have us buy it for you</a> : null}
               <a className={`btn ${isOpen ? "btn-outline" : "btn-primary"} btn-block`} href={bidLink} target="_blank" rel="noopener noreferrer">{isOpen ? "View and bid yourself" : "View the auction"}</a>
               {isOpen ? <a className="btn btn-outline btn-block" href="#financing">Finance this lot</a> : null}
               <WatchButton id={lot.id} />
@@ -285,7 +283,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
 
         <div className="mobile-bidbar">
           <div><span>{bidLabel}</span><strong>{bid}</strong></div>
-          <div className="mobile-bidbar-actions">{isOpen ? <><a className="btn btn-outline" href={bidLink} target="_blank" rel="noopener noreferrer">Bid</a><a className="btn btn-primary" href="#buy-for-me">Buy for me</a></> : <a className="btn btn-primary" href={bidLink} target="_blank" rel="noopener noreferrer">View auction</a>}</div>
+          <div className="mobile-bidbar-actions">{isOpen ? <a className="btn btn-primary" href="#bid">Place bid</a> : <a className="btn btn-primary" href={bidLink} target="_blank" rel="noopener noreferrer">View auction</a>}</div>
         </div>
       </main>
     </>
