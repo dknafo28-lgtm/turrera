@@ -1,0 +1,56 @@
+name: Preview check (temporary)
+on:
+  push:
+    branches: [improve]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci && npm i --no-save puppeteer-core@23
+      - run: npx next build
+      - name: Screenshots
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          WHATSAPP_NUMBER: "13055550100"
+        run: |
+          npx next start -p 3123 > /tmp/next.log 2>&1 &
+          sleep 10
+          export CHROME=$(which google-chrome || which chromium)
+          LOT=$(curl -s "http://localhost:3123/search?category=boats" | grep -o 'href="/lot/[^"]*"' | head -1 | sed 's/href="//; s/"$//')
+          echo "lot: $LOT"
+          for u in "/" "$LOT" "/search?category=boats" "/search?q=zzzqqq" "/sitemap.xml" "/robots.txt" "/opengraph-image"; do curl -s -o /dev/null -w "$u -> %{http_code}\n" "http://localhost:3123$u"; done
+          curl -s "http://localhost:3123$LOT" | grep -o '<meta property="og:[a-z:]*" content="[^"]\{0,120\}' | head -6
+          curl -s "http://localhost:3123$LOT" | grep -o '<title>[^<]*' | head -1
+          curl -s "http://localhost:3123$LOT" | grep -o 'application/ld+json">[^<]\{0,300\}' | head -1
+          curl -s "http://localhost:3123/search?category=boats&state=FL" | grep -o '<title>[^<]*'
+          curl -s "http://localhost:3123/sitemap.xml" | grep -c "<url>"
+          node scripts/iphone-audit.mjs http://localhost:3123 "$LOT" "/search?q=zzzqqq"
+          mkdir -p shots
+          $CHROME --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=8000 --window-size=1400,2400 --screenshot=shots/d-lot.png "http://localhost:3123$LOT" 2>/dev/null
+          node -e '
+            const puppeteer = require("puppeteer-core");
+            (async () => {
+              const b = await puppeteer.launch({ executablePath: process.env.CHROME, args: ["--no-sandbox"] });
+              const p = await b.newPage();
+              await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+              await p.goto("http://localhost:3123" + process.argv[1], { waitUntil: "networkidle2", timeout: 60000 });
+              const el = await p.$("#buy-for-me"); if (el) await el.screenshot({ path: "shots/m-buy.png" });
+              const bb = await p.$(".bidbox"); if (bb) await bb.screenshot({ path: "shots/m-bidbox.png" });
+              await b.close();
+            })();' "$LOT"
+          grep -i "error" /tmp/next.log | grep -v DEP0 | head -5 || true
+      - name: Save screenshots
+        if: always()
+        run: |
+          cp -r shots /tmp/shots || true
+          git config user.name "turrera-bot"; git config user.email "bot@turrera.com"
+          git checkout --orphan preview-shots
+          git rm -rq --cached . && rm -rf ./* .github .gitignore
+          cp /tmp/shots/*.png . && git add *.png && git commit -qm "Screenshots" && git push -f origin preview-shots

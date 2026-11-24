@@ -8,7 +8,21 @@ import {
 } from "@/lib/lots";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Search government surplus | Turrera" };
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+  const p = normalizeParams(await searchParams);
+  const cat = CATEGORIES.find((c) => c.key === p.category);
+  const thing = (typeLabel(p.category, p.sub) ?? cat?.label ?? "Surplus").toLowerCase();
+  const where = p.state ? ` in ${p.state}` : "";
+  const sold = p.status === "sold";
+  const title = p.q
+    ? `${p.q}: government surplus${where}`
+    : sold ? `Government ${thing} sold prices${where}` : `Government ${thing} for sale${where}`;
+  const description = sold
+    ? `What government ${thing} actually sold for at public auction${where}. Final prices and bid counts from the last 12 months.`
+    : `Government ${thing} at public auction${where}, direct from the agencies. Clear listings, recent sold prices, local inspections and worldwide shipping.`;
+  const canonical = `/search${p.category ? `?category=${p.category}${p.sub ? `&sub=${p.sub}` : ""}${sold ? "&status=sold" : ""}` : sold ? "?status=sold" : ""}`;
+  return { title: `${title} | Turrera`, description, alternates: { canonical }, robots: p.q || p.page ? { index: false, follow: true } : undefined };
+}
 
 const KEEP = ["status", "q", "category", "sub", "ymin", "ymax", "lmin", "lmax", "state", "max", "min", "sort", "ending", "source", "ease", "deal", "view"] as const;
 
@@ -252,9 +266,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </div>
             ) : (
               <div className="empty">
-                <h2>No open lots match these filters</h2>
-                <p>Try a broader search, a different state, or remove a filter above.</p>
-                <a className="btn btn-outline" href="/search">See all open lots</a>
+                <h2>{sold ? "No sold prices match these filters yet" : "Nothing open matches right now"}</h2>
+                <p>{sold ? "Try a broader search or another category." : "New government lots come in every few hours. Set an alert below and we'll email you as soon as one is listed, or try a broader search."}</p>
+                <div className="empty-actions">
+                  {active.length ? <a className="btn btn-outline" href={p.q ? `/search?q=${encodeURIComponent(p.q)}` : "/search"}>Remove filters</a> : null}
+                  {!sold ? <a className="btn btn-outline" href={href(p, { status: "sold", sort: undefined, page: undefined })}>See what these sold for</a> : null}
+                </div>
               </div>
             )}
 

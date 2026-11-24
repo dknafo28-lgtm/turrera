@@ -18,7 +18,7 @@ export default function LotCard({ lot, layout = "grid" }: { lot: Lot; layout?: "
   return (
     <article className={`card card-${layout}`}>
       <a href={href} className="card-media" tabIndex={-1} aria-hidden="true">
-        {lot.photo_url ? <img src={lot.photo_url} alt="" loading="lazy" decoding="async" /> : <span className="card-nophoto">No photo</span>}
+        {lot.photo_url ? <img src={lot.photo_url} alt={titleCase(lot.title) || "Lot photo"} loading="lazy" decoding="async" /> : <span className="card-nophoto">No photo</span>}
       </a>
       <div className="card-body">
         <div className="card-top">
