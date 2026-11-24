@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getReadClient } from "@/lib/supabase";
+import { getUserClient } from "@/lib/auth";
 import { EMAIL_RE, back, field, originOf } from "@/lib/forms";
 import { depositFor } from "@/lib/deposit";
 import { createDepositCheckout, stripeEnabled } from "@/lib/stripe";
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return back(req, `/lot/${encodeURIComponent(lotId)}?buy=missing#buy-for-me`);
   }
   const deposit = depositFor(maxBid);
-  const db = getReadClient();
+  const db = await getUserClient(); // signed in: the request is linked to their account
   if (!db) return back(req, "/thanks?k=error");
   const { data: id, error } = await db.rpc("request_buy", {
     p_lot_id: lotId, p_name: name, p_email: email, p_phone: field(fd, "phone", 40) || null, p_max_bid: maxBid,

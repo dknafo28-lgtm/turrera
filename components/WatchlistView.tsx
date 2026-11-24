@@ -8,6 +8,7 @@ import { readWatchlist } from "./WatchButton";
 export default function WatchlistView() {
   const [lots, setLots] = useState<Lot[] | null>(null);
   useEffect(() => {
+    const load = () => {
     const ids = readWatchlist();
     if (!ids.length) { setLots([]); return; }
     fetch(`/api/lots?ids=${encodeURIComponent(ids.join(","))}`)
@@ -19,13 +20,17 @@ export default function WatchlistView() {
         setLots([...d.lots].sort((a, b) => Number(open(b)) - Number(open(a)) || (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)));
       })
       .catch(() => setLots([]));
+    };
+    load();
+    window.addEventListener("turrera-account", load);
+    return () => window.removeEventListener("turrera-account", load);
   }, []);
   if (lots === null) return <p className="results-count">Loading your lots…</p>;
   if (!lots.length) {
     return (
       <div className="empty">
         <h2>Nothing on your watchlist yet</h2>
-        <p>Tap the star on any lot to keep it here. Starred lots are saved in this browser.</p>
+        <p>Tap the star on any lot to keep it here. <a href="/signin?mode=signup&amp;next=/watchlist">Create a free account</a> to keep your watchlist on every device.</p>
         <a className="btn btn-outline" href="/search?ending=24h">Browse lots closing today</a>
       </div>
     );

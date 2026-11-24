@@ -1,6 +1,6 @@
 import TAXONOMY from "@/lib/taxonomy.json";
 import { CATEGORIES } from "@/lib/lots";
-import { WatchCount } from "./WatchButton";
+import { AccountLink, WatchCount } from "./WatchButton";
 import Logo from "./Logo";
 
 // Categories shown in the slim row under the header on desktop (no scrolling; the rest are in "Shop by category").
@@ -34,6 +34,7 @@ export default function SiteHeader({ q = "", category = "" }: { q?: string; cate
               <li><a href="/financing">Financing</a></li>
               <li><a href="/sell">Sell your fleet</a></li>
               <li><a href="/watchlist">Watchlist</a></li>
+              <li><a href="/account">My account</a></li>
             </ul>
             <div className="catmenu-grid">
               {TAXONOMY.filter((c) => c.key !== "other").map((c) => (
@@ -73,6 +74,7 @@ export default function SiteHeader({ q = "", category = "" }: { q?: string; cate
             <span className="header-watch-label">Watchlist</span>
             <WatchCount />
           </a>
+          <AccountLink className="header-watch header-account" />
         </nav>
       </div>
 

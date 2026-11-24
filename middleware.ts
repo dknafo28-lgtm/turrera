@@ -1,4 +1,25 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+
+// Keeps a signed-in visitor's session fresh. Only runs when they have a Supabase sign-in cookie.
+async function refreshSession(req: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || !req.cookies.getAll().some((c) => c.name.startsWith("sb-"))) return NextResponse.next();
+  let res = NextResponse.next({ request: req });
+  const db = createServerClient(url, key, {
+    cookies: {
+      getAll: () => req.cookies.getAll(),
+      setAll: (list) => {
+        for (const { name, value } of list) req.cookies.set(name, value);
+        res = NextResponse.next({ request: req });
+        for (const { name, value, options } of list) res.cookies.set(name, value, options);
+      },
+    },
+  });
+  await db.auth.getUser();
+  return res;
+}
 
 // SITE_PASSWORD set in Vercel: the whole site needs the password.
 // Remove SITE_PASSWORD to make the site public. The admin pages always need
@@ -18,7 +39,7 @@ function ask(realm: string) {
   return new NextResponse("Password required", { status: 401, headers: { "WWW-Authenticate": `Basic realm="${realm}", charset="UTF-8"` } });
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
   if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
     const adminPassword = process.env.ADMIN_PASSWORD || process.env.SITE_PASSWORD;
@@ -26,8 +47,8 @@ export function middleware(req: NextRequest) {
     return passwordOk(req, adminPassword) ? NextResponse.next() : ask("Turrera admin");
   }
   const password = process.env.SITE_PASSWORD;
-  if (!password) return NextResponse.next();
-  return passwordOk(req, password) ? NextResponse.next() : ask("Turrera");
+  if (password && !passwordOk(req, password)) return ask("Turrera");
+  return refreshSession(req);
 }
 
 export const config = {

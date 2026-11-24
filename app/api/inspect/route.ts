@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getReadClient } from "@/lib/supabase";
+import { getUserClient } from "@/lib/auth";
 import { EMAIL_RE, back, field, originOf } from "@/lib/forms";
 import { INSPECTION_FEE } from "@/lib/inspection";
 import { createDepositCheckout, stripeEnabled } from "@/lib/stripe";
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   if (!lotId || !name || !EMAIL_RE.test(email) || fd.get("terms") !== "yes") {
     return back(req, `/lot/${encodeURIComponent(lotId)}?inspect=missing#inspect`);
   }
-  const db = getReadClient();
+  const db = await getUserClient(); // signed in: the request is linked to their account
   if (!db) return back(req, "/thanks?k=error");
   const { data: id, error } = await db.rpc("request_inspection", {
     p_lot_id: lotId, p_name: name, p_email: email, p_phone: field(fd, "phone", 40) || null,

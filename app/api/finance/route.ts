@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getReadClient } from "@/lib/supabase";
+import { getUserClient } from "@/lib/auth";
 import { EMAIL_RE, back, field } from "@/lib/forms";
 
 export async function POST(req: Request) {
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const lotId = field(fd, "lot_id", 200);
   if (!EMAIL_RE.test(email) || !name) return back(req, `/financing?missing=1${lotId ? `&lot=${encodeURIComponent(lotId)}` : ""}#apply`);
   const amount = Number(field(fd, "amount", 20).replace(/[$,\s]/g, ""));
-  const db = getReadClient();
+  const db = await getUserClient(); // signed in: the request is linked to their account
   const { error } = db ? await db.rpc("request_financing", {
     p_lot_id: lotId || null, p_buyer_type: field(fd, "buyer_type", 20) || "business", p_name: name,
     p_company: field(fd, "company", 160) || null, p_email: email, p_phone: field(fd, "phone", 40) || null,

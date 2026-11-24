@@ -362,3 +362,46 @@ begin
 end $$;
 revoke all on function public.request_inspection(text, text, text, text, text, numeric) from public;
 grant execute on function public.request_inspection(text, text, text, text, text, numeric) to anon, authenticated, service_role;
+
+-- ── Accounts ─────────────────────────────────────────────────────────────────
+-- People sign in with Supabase Auth. Their watchlist lives here, and their alerts and
+-- requests are tagged with their user id (auth.uid() is filled in automatically when
+-- the request is made while signed in, including inside the request_* functions).
+create table if not exists public.watchlist_items (
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  lot_id     text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, lot_id)
+);
+alter table public.watchlist_items enable row level security;
+grant select, insert, delete on public.watchlist_items to authenticated;
+grant all on public.watchlist_items to service_role;
+drop policy if exists "own watchlist read" on public.watchlist_items;
+create policy "own watchlist read" on public.watchlist_items for select to authenticated using (user_id = auth.uid());
+drop policy if exists "own watchlist add" on public.watchlist_items;
+create policy "own watchlist add" on public.watchlist_items for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "own watchlist remove" on public.watchlist_items;
+create policy "own watchlist remove" on public.watchlist_items for delete to authenticated using (user_id = auth.uid());
+
+alter table public.saved_searches      add column if not exists user_id uuid default auth.uid() references auth.users (id) on delete set null;
+alter table public.buy_requests        add column if not exists user_id uuid default auth.uid() references auth.users (id) on delete set null;
+alter table public.finance_requests    add column if not exists user_id uuid default auth.uid() references auth.users (id) on delete set null;
+alter table public.inspection_requests add column if not exists user_id uuid default auth.uid() references auth.users (id) on delete set null;
+create index if not exists saved_searches_user_idx      on public.saved_searches (user_id);
+create index if not exists buy_requests_user_idx        on public.buy_requests (user_id);
+create index if not exists finance_requests_user_idx    on public.finance_requests (user_id);
+create index if not exists inspection_requests_user_idx on public.inspection_requests (user_id);
+
+-- Signed-in people can see their own alerts and requests (never anyone else's) and turn off their own alerts.
+grant select on public.saved_searches, public.buy_requests, public.finance_requests, public.inspection_requests to authenticated;
+grant update (active) on public.saved_searches to authenticated;
+drop policy if exists "own alerts read" on public.saved_searches;
+create policy "own alerts read" on public.saved_searches for select to authenticated using (user_id = auth.uid());
+drop policy if exists "own alerts toggle" on public.saved_searches;
+create policy "own alerts toggle" on public.saved_searches for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "own buy requests" on public.buy_requests;
+create policy "own buy requests" on public.buy_requests for select to authenticated using (user_id = auth.uid());
+drop policy if exists "own finance requests" on public.finance_requests;
+create policy "own finance requests" on public.finance_requests for select to authenticated using (user_id = auth.uid());
+drop policy if exists "own inspection requests" on public.inspection_requests;
+create policy "own inspection requests" on public.inspection_requests for select to authenticated using (user_id = auth.uid());
