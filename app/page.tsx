@@ -145,7 +145,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           </section>
         ) : null}
 
-        <section className="home-section home-band">
+        <section className="home-section home-band" id="signup">
           <div>
             <h2>Government auctions this week</h2>
             <p>One free email every Monday with the standout auctions closing each day of the week.</p>
