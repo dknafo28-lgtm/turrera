@@ -6,13 +6,19 @@ import "@fontsource/public-sans/700.css";
 import "@fontsource/saira-semi-condensed/700.css";
 import "@fontsource/saira-semi-condensed/800.css";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import Logo from "@/components/Logo";
+import { SITE_URL } from "@/lib/site";
 import NewsletterForm from "@/components/NewsletterForm";
 
 export const metadata: Metadata = {
-  title: "Turrera: government surplus auctions in one place",
-  description: "Search government surplus lots from public auctions across the US, with condition notes and recent sold prices.",
+  metadataBase: new URL(SITE_URL),
+  title: "Turrera: government surplus boats, trucks and equipment",
+  description: "Buy direct from government agencies. Boats, trucks, equipment and more from public auctions across the US, with clear listings, recent sold prices, local inspections and worldwide shipping.",
   icons: { icon: "/favicon.svg" },
+  openGraph: { type: "website", siteName: "Turrera", locale: "en_US" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = { themeColor: "#162e51" };
@@ -50,6 +56,15 @@ function galleryIndex(strip) { return Math.round(strip.scrollLeft / Math.max(1, 
 document.addEventListener("click", function (e) {
   var t = e.target && e.target.closest ? e.target : null;
   if (!t) return;
+  var copy = t.closest("[data-copy]");
+  if (copy) {
+    var url = copy.getAttribute("data-copy"), label = copy.querySelector("[data-copy-label]");
+    var done = function () { if (label) { label.textContent = "Copied"; setTimeout(function () { label.textContent = "Copy link"; }, 2000); } };
+    if (navigator.share && window.matchMedia("(max-width: 860px)").matches) { navigator.share({ url: url }).catch(function () {}); return; }
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, function () { window.prompt("Copy this link", url); });
+    else window.prompt("Copy this link", url);
+    return;
+  }
   var thumb = t.closest(".gallery-thumb");
   if (thumb) {
     var strip = document.querySelector("[data-gallery]");
@@ -129,6 +144,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </footer>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT }} />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

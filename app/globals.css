@@ -267,6 +267,7 @@ button, input, select { font: inherit; color: inherit; }
 .filters-trigger { display: none; }
 .sort-form { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 14px; color: var(--muted); }
 .sort-form select { height: 40px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--white); color: var(--ink); font-size: 15px; }
+.empty-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .view-toggle { display: flex; border: 1px solid var(--line-2); border-radius: var(--radius); overflow: hidden; background: var(--white); }
 .view-toggle a { display: grid; place-items: center; width: 40px; height: 38px; color: var(--muted); }
 .view-toggle a + a { border-left: 1px solid var(--line-2); }
@@ -507,6 +508,13 @@ button, input, select { font: inherit; color: inherit; }
 .type-pills a[aria-current] em { color: var(--ice); }
 
 /* Sold comparables in the bid box */
+.bidbox-whatsapp { display: block; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--green); }
+.share { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.share-label { font-size: 13px; color: var(--ink-2); margin-right: 2px; }
+.share a, .share button { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; color: var(--ink); font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
+.share a:hover, .share button:hover { border-color: var(--blue); color: var(--blue); }
+.buy-points { margin: 10px 0 14px; padding-left: 20px; font-size: 15px; color: var(--ink-2); }
+.buy-points li + li { margin-top: 4px; }
 .bidbox-inspect { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--blue); border-radius: var(--radius); color: var(--ink); text-decoration: none; font-size: 14px; }
 .bidbox-inspect strong { color: var(--blue); }
 .bidbox-inspect:hover { background: #eff6fb; }

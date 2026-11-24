@@ -10,6 +10,8 @@ import WatchButton from "@/components/WatchButton";
 import InspectForm from "@/components/InspectForm";
 import BuyForm from "@/components/BuyForm";
 import FinanceOptions from "@/components/FinanceOptions";
+import ShareButtons from "@/components/ShareButtons";
+import { SITE_URL, WHATSAPP } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,22 @@ async function getLot(rawId: string): Promise<FullLot | null> {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const lot = await getLot((await params).id);
-  return { title: lot ? `${titleCase(lot.title)} | Turrera` : "Lot not found | Turrera" };
+  if (!lot) return { title: "Lot not found | Turrera", robots: { index: false } };
+  const title = titleCase(lot.title) || "Government surplus lot";
+  const place = [lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ");
+  const sold = lot.sold && lot.final_price;
+  const open = lot.end_time && new Date(lot.end_time).getTime() > Date.now();
+  const status = sold ? `Sold for ${money(lot.final_price)}.` : open ? `${money(lot.current_bid) ? `Current bid ${money(lot.current_bid)}.` : "No bids yet."} Closes ${closesAt(lot.end_time, lot.source === "jjkane")}.` : "Auction closed.";
+  const description = `${title}${place ? ` in ${place}` : ""}. ${status} Government surplus, direct from the agency. We can inspect, buy and ship it for you.`;
+  const photos = [...new Set((Array.isArray(lot.photos) && lot.photos.length ? lot.photos : [lot.photo_url]).filter(Boolean) as string[])].slice(0, 4);
+  const url = `/lot/${encodeURIComponent(lot.id)}`;
+  return {
+    title: `${title}${place ? `, ${place}` : ""} | Turrera`,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: "website", ...(photos.length ? { images: photos.map((p) => ({ url: p, alt: title })) } : {}) },
+    twitter: { card: "summary_large_image", title, description, ...(photos.length ? { images: photos } : {}) },
+  };
 }
 
 function fmtDate(s: string | null | undefined) {
@@ -73,10 +90,30 @@ export default async function LotPage({ params, searchParams }: { params: Promis
   facts.push(["Lot ID", lot.id.replace(/^[a-z]+[-:]/, "")]);
 
   const bidLink = lot.lot_url ?? undefined;
+  const isOpen = !!lot.end_time && new Date(lot.end_time).getTime() > Date.now();
+  const pageUrl = `${SITE_URL}/lot/${encodeURIComponent(lot.id)}`;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: title,
+    url: pageUrl,
+    ...(photos.length ? { image: photos.slice(0, 8) } : {}),
+    ...(lot.description ? { description: lot.description.slice(0, 500) } : {}),
+    ...(cat ? { category: cat.label } : {}),
+    ...(l.make ? { brand: { "@type": "Brand", name: titleCase(l.make) } } : {}),
+    ...(isOpen && lot.current_bid && lot.current_bid > 0 ? {
+      offers: {
+        "@type": "Offer", url: pageUrl, priceCurrency: "USD", price: lot.current_bid, availability: "https://schema.org/InStock",
+        itemCondition: "https://schema.org/UsedCondition", ...(lot.end_time ? { priceValidUntil: lot.end_time.slice(0, 10) } : {}),
+        ...(lot.agency ? { seller: { "@type": "GovernmentOrganization", name: titleCase(lot.agency) } } : {}),
+      },
+    } : {}),
+  };
 
   return (
     <>
       <SiteHeader category={lot.category ?? ""} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <main className="lot">
         <nav className="crumbs" aria-label="Breadcrumb">
           <a href="/">Home</a><span aria-hidden="true">/</span>
@@ -173,17 +210,11 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               </section>
             ) : null}
 
-            {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
-              <FinanceOptions compact lotId={lot.id} category={lot.category} amount={lot.current_bid && lot.current_bid > 0 ? lot.current_bid : null} />
-            ) : null}
+            {isOpen ? <BuyForm lotId={lot.id} site={site} missing={sp.buy === "missing"} suggested={null} whatsapp={WHATSAPP} title={title} /> : null}
 
-            {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
-              <InspectForm lotId={lot.id} category={lot.category} place={[lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ")} missing={sp.inspect === "missing"} />
-            ) : null}
+            {isOpen ? <InspectForm lotId={lot.id} category={lot.category} place={[lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ")} missing={sp.inspect === "missing"} /> : null}
 
-            {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
-              <BuyForm lotId={lot.id} site={site} missing={sp.buy === "missing"} suggested={null} />
-            ) : null}
+            {isOpen ? <FinanceOptions compact lotId={lot.id} category={lot.category} amount={lot.current_bid && lot.current_bid > 0 ? lot.current_bid : null} /> : null}
           </div>
 
           <aside className="bidbox" aria-label="Bidding">
@@ -208,20 +239,26 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               </div>
             ) : null}
             <div className="bidbox-actions">
-              <a className="btn btn-primary btn-block" href={bidLink} target="_blank" rel="noopener noreferrer">View and bid</a>
-              <a className="btn btn-outline btn-block" href="#buy-for-me">Have us buy it for you</a>
-              <a className="btn btn-outline btn-block" href="#financing">Finance this lot</a>
+              {isOpen ? <a className="btn btn-primary btn-block" href="#buy-for-me">Have us buy it for you</a> : null}
+              <a className={`btn ${isOpen ? "btn-outline" : "btn-primary"} btn-block`} href={bidLink} target="_blank" rel="noopener noreferrer">{isOpen ? "View and bid yourself" : "View the auction"}</a>
+              {isOpen ? <a className="btn btn-outline btn-block" href="#financing">Finance this lot</a> : null}
               <WatchButton id={lot.id} />
             </div>
-            {lot.end_time && new Date(lot.end_time).getTime() > Date.now() ? (
+            {isOpen ? (
               <a className="bidbox-inspect" href="#inspect">
                 <strong>Want more info?</strong>
                 <span>Hire a Turrera local inspector</span>
               </a>
             ) : null}
+            {WHATSAPP ? (
+              <a className="bidbox-whatsapp" href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Hi, I have a question about ${title}: ${pageUrl}`)}`} target="_blank" rel="noopener noreferrer">
+                Questions? Message us on WhatsApp
+              </a>
+            ) : null}
             <p className="fine">
               A buyer&apos;s premium, taxes and pickup rules may apply.
             </p>
+            <ShareButtons url={pageUrl} title={title} />
           </aside>
         </div>
 
@@ -248,7 +285,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
 
         <div className="mobile-bidbar">
           <div><span>{bidLabel}</span><strong>{bid}</strong></div>
-          <div className="mobile-bidbar-actions"><a className="btn btn-outline" href="#buy-for-me">Buy for me</a><a className="btn btn-primary" href={bidLink} target="_blank" rel="noopener noreferrer">Bid</a></div>
+          <div className="mobile-bidbar-actions">{isOpen ? <><a className="btn btn-outline" href={bidLink} target="_blank" rel="noopener noreferrer">Bid</a><a className="btn btn-primary" href="#buy-for-me">Buy for me</a></> : <a className="btn btn-primary" href={bidLink} target="_blank" rel="noopener noreferrer">View auction</a>}</div>
         </div>
       </main>
     </>
