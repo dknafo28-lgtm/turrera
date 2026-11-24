@@ -21,8 +21,8 @@ async function refreshSession(req: NextRequest) {
   return res;
 }
 
-// SITE_PASSWORD set in Vercel: the whole site needs the password.
-// Remove SITE_PASSWORD to make the site public. The admin pages always need
+// The site is public. Set SITE_LOCK=1 in Vercel to put the whole site back behind SITE_PASSWORD.
+// The admin pages always need
 // ADMIN_PASSWORD (or SITE_PASSWORD if that's all there is); with neither set they stay locked.
 function passwordOk(req: NextRequest, password: string) {
   const header = req.headers.get("authorization");
@@ -46,7 +46,7 @@ export async function middleware(req: NextRequest) {
     if (!adminPassword) return new NextResponse("Admin is locked. Set ADMIN_PASSWORD in Vercel.", { status: 403 });
     return passwordOk(req, adminPassword) ? NextResponse.next() : ask("Turrera admin");
   }
-  const password = process.env.SITE_PASSWORD;
+  const password = process.env.SITE_LOCK === "1" ? process.env.SITE_PASSWORD : undefined;
   if (password && !passwordOk(req, password)) return ask("Turrera");
   return refreshSession(req);
 }
