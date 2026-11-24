@@ -244,7 +244,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             </div>
             {isOpen ? (
               <a className="bidbox-inspect" href="#inspect">
-                <strong>Want more info?</strong>
+                <strong>Want more info on this lot?</strong>
                 <span>Hire a Turrera local inspector</span>
               </a>
             ) : null}

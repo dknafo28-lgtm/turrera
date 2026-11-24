@@ -7,7 +7,7 @@ export default function InspectForm({ lotId, place, category, missing = false }:
   const fee = `$${INSPECTION_FEE.toLocaleString()}`;
   return (
     <section className="lot-section inspect-form" id="inspect" aria-labelledby="inspect-h">
-      <h2 id="inspect-h">Want more info? Hire a Turrera local inspector</h2>
+      <h2 id="inspect-h">Want more info on this lot? Hire a Turrera local inspector</h2>
       <p>
         For {fee}, a local rep goes to see it{place ? ` in ${place}` : ""} before the auction closes. You get photos, video and
         answers to your questions{runs ? ", plus a start-up check where the seller allows it" : ""}, so you can bid with confidence.
