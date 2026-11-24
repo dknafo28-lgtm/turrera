@@ -10,6 +10,7 @@ import WatchButton from "@/components/WatchButton";
 import InspectForm from "@/components/InspectForm";
 import BidStart from "@/components/BidStart";
 import FinanceOptions from "@/components/FinanceOptions";
+import { canInspect } from "@/lib/inspection";
 import ShareButtons from "@/components/ShareButtons";
 import { SITE_URL, WHATSAPP } from "@/lib/site";
 
@@ -210,7 +211,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               </section>
             ) : null}
 
-            {isOpen ? <InspectForm lotId={lot.id} category={lot.category} place={[lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ")} missing={sp.inspect === "missing"} /> : null}
+            {isOpen && canInspect(lot.end_time) ? <InspectForm lotId={lot.id} category={lot.category} place={[lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ")} missing={sp.inspect === "missing"} /> : null}
 
             {isOpen ? <FinanceOptions compact lotId={lot.id} category={lot.category} amount={lot.current_bid && lot.current_bid > 0 ? lot.current_bid : null} /> : null}
           </div>
@@ -242,7 +243,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
               {isOpen ? <a className="btn btn-outline btn-block" href="#financing">Finance this lot</a> : null}
               <WatchButton id={lot.id} />
             </div>
-            {isOpen ? (
+            {isOpen && canInspect(lot.end_time) ? (
               <a className="bidbox-inspect" href="#inspect">
                 <strong>Want more info on this lot?</strong>
                 <span>Hire a Turrera local inspector</span>

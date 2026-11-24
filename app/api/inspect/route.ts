@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserClient } from "@/lib/auth";
 import { EMAIL_RE, back, field, originOf } from "@/lib/forms";
-import { INSPECTION_FEE } from "@/lib/inspection";
+import { canInspect, inspectionFee } from "@/lib/inspection";
 import { createDepositCheckout, stripeEnabled } from "@/lib/stripe";
 
 export async function POST(req: Request) {
@@ -15,15 +15,18 @@ export async function POST(req: Request) {
   }
   const db = await getUserClient(); // signed in: the request is linked to their account
   if (!db) return back(req, "/thanks?k=error");
+  const { data: lot } = await db.from("lots").select("category,end_time").eq("id", lotId).maybeSingle();
+  if (!lot || !canInspect(lot.end_time)) return back(req, `/lot/${encodeURIComponent(lotId)}`);
+  const fee = inspectionFee(lot.category);
   const { data: id, error } = await db.rpc("request_inspection", {
     p_lot_id: lotId, p_name: name, p_email: email, p_phone: field(fd, "phone", 40) || null,
-    p_questions: field(fd, "questions", 2000) || null, p_fee: INSPECTION_FEE,
+    p_questions: field(fd, "questions", 2000) || null, p_fee: fee,
   });
   if (error || !id) return back(req, "/thanks?k=error");
   if (stripeEnabled()) {
     try {
       const url = await createDepositCheckout({
-        amount: INSPECTION_FEE, email, requestId: String(id), origin: originOf(req), kind: "inspect",
+        amount: fee, email, requestId: String(id), origin: originOf(req), kind: "inspect",
         product: "Local inspection", description: `In-person inspection of lot ${lotId} before the auction closes`,
       });
       return NextResponse.redirect(url, 303);

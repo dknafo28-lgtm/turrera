@@ -1,10 +1,9 @@
-import { INSPECTION_FEE } from "@/lib/inspection";
+import { ENGINE_CATEGORIES, inspectionFee } from "@/lib/inspection";
 
-const RUNS = new Set(["boats", "trucks", "cars", "equipment", "buses", "powersports", "emergency", "aircraft"]);
 
 export default function InspectForm({ lotId, place, category, missing = false }: { lotId: string; place: string; category?: string | null; missing?: boolean }) {
-  const runs = RUNS.has(category ?? "");
-  const fee = `$${INSPECTION_FEE.toLocaleString()}`;
+  const runs = ENGINE_CATEGORIES.has(category ?? "");
+  const fee = `$${inspectionFee(category).toLocaleString()}`;
   return (
     <section className="lot-section inspect-form" id="inspect" aria-labelledby="inspect-h">
       <h2 id="inspect-h">Want more info on this lot? Hire a Turrera local inspector</h2>
