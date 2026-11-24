@@ -142,6 +142,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p>Listings come from public government auctions. Turrera isn&apos;t affiliated with the selling agencies. Check the listing and recent sales before you bid.</p>
             </div>
           </div>
+          <div className="footer-legal">
+            <p>&copy; {new Date().getFullYear()} Turrera. All rights reserved. Turrera is an RDI company.</p>
+          </div>
         </footer>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT }} />
         <Analytics />

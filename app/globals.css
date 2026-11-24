@@ -60,6 +60,10 @@ button, input, select { font: inherit; color: inherit; }
 .btn-block { width: 100%; }
 
 /* Header (eBay-style: logo, Shop by category, one search bar) */
+.brand-strip { background: #0f2240; color: #b9c7d8; }
+.brand-strip-inner { max-width: var(--wrap); margin: 0 auto; padding: 4px 24px; font-size: 12px; letter-spacing: 0.02em; }
+.footer-legal { max-width: var(--wrap); margin: 0 auto; padding: 14px 24px 22px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.footer-legal p { font-size: 13px; color: #9fb0c5; }
 .site-header { background: var(--navy); color: var(--white); position: relative; z-index: 20; }
 .header-bar {
   max-width: var(--wrap); margin: 0 auto; padding: 12px 24px;
@@ -392,7 +396,7 @@ button, input, select { font: inherit; color: inherit; }
 
 /* Footer */
 .site-footer { background: var(--navy); color: #c9d3e0; margin-top: 24px; }
-.site-footer-inner { max-width: var(--wrap); margin: 0 auto; padding: 28px 24px 36px; }
+.site-footer-inner { max-width: var(--wrap); margin: 0 auto; padding: 28px 24px 28px; }
 .footer-logo { height: 20px; width: auto; flex: none; margin-top: 3px; align-self: flex-start; }
 .site-footer p { font-size: 14px; max-width: 80ch; }
 
