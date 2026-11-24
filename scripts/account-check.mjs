@@ -37,14 +37,33 @@ try {
   const { data: rows } = await admin.from("watchlist_items").select("lot_id").eq("user_id", uid);
   check(rows?.length === 1 && `/lot/${encodeURIComponent(rows[0].lot_id)}` === lotHref, "star saved to the account");
 
-  // A buy-for-me request sent while signed in is linked to the account.
-  await page.type('#buy-for-me input[name="name"]', "Preview Check");
-  await page.type('#buy-for-me input[name="email"]', email);
-  await page.type('#buy-for-me input[name="max_bid"]', "1000");
-  await page.click('#buy-for-me input[name="terms"]');
-  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle2" }), page.click('#buy-for-me button[type="submit"]')]);
-  const { data: buys } = await admin.from("buy_requests").select("id,user_id").eq("email", email);
-  check(buys?.length === 1 && buys[0].user_id === uid, "buy request linked to the account");
+  // Bidding: one box on the lot page, then the confirm page, then the request is linked to the account.
+  const current = await page.$eval(".bidbox", (el) => { const m = el.textContent.match(/Current bid\$([\d,]+)/); return m ? Number(m[1].replace(/,/g, "")) : 0; });
+  const myMax = Math.max(1000, current + 500);
+  await page.type("#bid-max", String(myMax));
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle2" }), page.click('#bid button[type="submit"]')]);
+  check(page.url().includes("/bid/") && page.url().includes(`max=${myMax}`), `bid box goes to the confirm page (${page.url()})`);
+  await page.screenshot({ path: "shots/bid-confirm.png", fullPage: true });
+  const depositShown = await page.$eval("[data-deposit-out]", (el) => el.textContent);
+  check(/\$[\d,]+/.test(depositShown), `deposit shown: ${depositShown}`);
+  await page.type('.bid-form input[name="name"]', "Preview Check");
+  await page.click('.bid-form input[name="terms"]');
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle2" }), page.click('.bid-form button[type="submit"]')]);
+  check(page.url().includes("/thanks?k=buy"), `confirmed and landed on ${page.url()}`);
+  const { data: buys } = await admin.from("buy_requests").select("id,user_id,max_bid").eq("email", email);
+  check(buys?.length === 1 && buys[0].user_id === uid && Number(buys[0].max_bid) === myMax, "bid saved to the account with the right max");
+
+  // Signed out, the same box sends people to create an account, then back to the bid.
+  const guest = await browser.createBrowserContext();
+  const gp = await guest.newPage();
+  await gp.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await gp.goto(base + lotHref, { waitUntil: "networkidle2" });
+  const box = await gp.$(".bidbox"); if (box) await box.screenshot({ path: "shots/bidbox-phone.png" });
+  await gp.type("#bid-max", String(myMax + 100));
+  await Promise.all([gp.waitForNavigation({ waitUntil: "networkidle2" }), gp.click('#bid button[type="submit"]')]);
+  check(gp.url().includes("/signin") && gp.url().includes("mode=signup") && decodeURIComponent(gp.url()).includes("/bid/"), `signed-out bid goes to sign-up (${gp.url()})`);
+  await gp.screenshot({ path: "shots/bid-signup-phone.png", fullPage: true });
+  await guest.close();
 
   await page.goto(`${base}/account`, { waitUntil: "networkidle2" });
   await page.screenshot({ path: "shots/account.png", fullPage: true });

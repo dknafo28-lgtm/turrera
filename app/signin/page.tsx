@@ -23,13 +23,21 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<Q
   const next = safeNext(q.next);
   if (await getUser()) redirect(next);
   const signup = q.mode === "signup";
+  const bidding = next.startsWith("/bid/");
   const toggle = `/signin?${new URLSearchParams({ ...(signup ? {} : { mode: "signup" }), ...(q.next ? { next: q.next } : {}) })}`;
   return (
     <>
       <SiteHeader />
       <main className="page auth-page">
-        <h1>{signup ? "Create your Turrera account" : "Sign in"}</h1>
-        <p className="page-lead">{signup ? "Save your watchlist across your phone and computer, keep your auction alerts in one place, and track your buy-for-me and inspection requests." : "Your watchlist, alerts and requests, on any device."}</p>
+        {bidding ? (
+          <ol className="bid-steps" aria-label="Steps">
+            <li className="done"><span className="bid-step-num">{"\u2713"}</span>Your bid</li>
+            <li className="current" aria-current="step"><span className="bid-step-num">2</span>Your account</li>
+            <li><span className="bid-step-num">3</span>Deposit</li>
+          </ol>
+        ) : null}
+        <h1>{bidding ? (signup ? "Create a free account to place your bid" : "Sign in to place your bid") : signup ? "Create your Turrera account" : "Sign in"}</h1>
+        <p className="page-lead">{bidding ? "Your bid is saved. We use your account to keep you updated on the auction and to return your deposit if we don't win." : signup ? "Save your watchlist across your phone and computer, keep your auction alerts in one place, and track your buy-for-me and inspection requests." : "Your watchlist, alerts and requests, on any device."}</p>
 
         {q.check ? <p className="form-note" role="status">Check your email for a link to confirm your account, then sign in.</p> : null}
         {q.reset ? <p className="form-note" role="status">If there&apos;s an account for that email, a reset link is on its way.</p> : null}
