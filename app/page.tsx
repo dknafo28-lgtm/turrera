@@ -156,7 +156,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
           {homeReviews.count && homeReviews.average ? (
             <>
               <p className="review-summary"><Stars rating={homeReviews.average} size={20} /> <strong>{homeReviews.average.toFixed(1)}</strong> out of 5, from {homeReviews.count} review{homeReviews.count === 1 ? "" : "s"}</p>
-              <ReviewList reviews={homeReviews.reviews} showLot />
+              <ReviewList reviews={homeReviews.reviews} showLot cards />
             </>
           ) : (
             <p className="section-note">Bought something through Turrera or found a deal here? <a href="/reviews#write-review">Leave the first review</a>.</p>

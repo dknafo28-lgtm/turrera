@@ -855,8 +855,9 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .review-form h3 { margin: 0; font-size: 18px; }
 .review-toggle { margin-top: 12px; }
 .review-toggle > summary { cursor: pointer; color: var(--blue); font-weight: 600; margin-bottom: 8px; }
-.star-input { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 4px; border: 0; padding: 0; margin: 0; }
-.star-input legend { float: left; width: 100%; margin-bottom: 4px; font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.star-field { border: 0; padding: 0; margin: 0; min-width: 0; }
+.star-field legend { padding: 0; margin-bottom: 4px; font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.star-input { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 4px; }
 .star-input label { cursor: pointer; font-size: 30px; line-height: 1; color: #c9ccd1; margin: 0; }
 .star-input input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .star-input label:hover, .star-input label:hover ~ label, .star-input input:checked ~ span, .star-input label:has(input:checked), .star-input label:has(input:checked) ~ label { color: #c98a00; }
@@ -864,3 +865,9 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 @media (max-width: 860px) {
   .reviews-layout { grid-template-columns: 1fr; }
 }
+.review-form textarea { font: inherit; }
+.reviews-layout .form-grid { grid-template-columns: minmax(0, 1fr); }
+.reviews-layout .form-grid input, .reviews-layout .form-grid textarea { min-width: 0; width: 100%; }
+.review-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.review-cards li, .review-cards li:first-child { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); }
+@media (max-width: 860px) { .review-cards { grid-template-columns: 1fr; } }

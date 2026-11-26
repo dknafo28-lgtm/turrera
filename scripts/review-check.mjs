@@ -15,7 +15,7 @@ try {
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 900 });
   await page.goto(`${base}/reviews`, { waitUntil: "networkidle2" });
-  await page.click('.star-input label:nth-child(2)'); // 4 stars (labels run 5..1)
+  await page.click('.star-input label:nth-child(2)'); // 4 stars (labels run 5..1 in the page)
   await page.type('textarea[name="body"]', "Preview check: found a boat here and the listing matched what I saw in person.");
   await page.type('input[name="name"]', "Preview C.");
   await page.type('input[name="email"]', email);

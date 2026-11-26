@@ -13,11 +13,13 @@ export default function ReviewForm({ lotId, email, status, heading = "Write a re
       {m ? <p className={`${m[0]} span-2`} role={m[0] === "form-error" ? "alert" : "status"}>{m[1]}</p> : null}
       {lotId ? <input type="hidden" name="lot_id" value={lotId} /> : null}
       <input type="text" name="website" className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" />
-      <fieldset className="span-2 star-input">
+      <fieldset className="span-2 star-field">
         <legend>Your rating</legend>
-        {[5, 4, 3, 2, 1].map((n) => (
-          <label key={n}><input type="radio" name="rating" value={n} required /><span aria-hidden="true">★</span><span className="visually-hidden">{n} star{n > 1 ? "s" : ""}</span></label>
-        ))}
+        <div className="star-input">
+          {[5, 4, 3, 2, 1].map((n) => (
+            <label key={n}><input type="radio" name="rating" value={n} required /><span aria-hidden="true">★</span><span className="visually-hidden">{n} star{n > 1 ? "s" : ""}</span></label>
+          ))}
+        </div>
       </fieldset>
       <label className="span-2">{lotId ? "Your review of this lot or its listing" : "Your review"}<textarea name="body" rows={4} required minLength={10} maxLength={2000} placeholder={lotId ? "Was the listing accurate? How was pickup, condition, or the deal?" : "How was your experience finding, bidding or buying through Turrera?"} /></label>
       <label>Your name (shown)<input name="name" required maxLength={60} autoComplete="name" placeholder="e.g. Mike R." /></label>

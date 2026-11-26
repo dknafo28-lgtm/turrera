@@ -5,9 +5,9 @@ function day(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
 }
 
-export default function ReviewList({ reviews, showLot = false }: { reviews: Review[]; showLot?: boolean }) {
+export default function ReviewList({ reviews, showLot = false, cards = false }: { reviews: Review[]; showLot?: boolean; cards?: boolean }) {
   return (
-    <ul className="review-list">
+    <ul className={`review-list${cards ? " review-cards" : ""}`}>
       {reviews.map((r) => (
         <li key={r.id}>
           <div className="review-head">
