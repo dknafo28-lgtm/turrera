@@ -144,6 +144,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <a href="/sell">Sell your fleet</a>
                 <a href="/financing">Financing</a>
                 <a href="/watchlist">Watchlist</a>
+                <a href="/reviews">Reviews</a>
               </nav>
             </div>
             <div className="footer-col">

@@ -4,6 +4,9 @@ import LotCard from "@/components/LotCard";
 import NewsletterForm from "@/components/NewsletterForm";
 import ShowcaseCard from "@/components/ShowcaseCard";
 import { CATEGORIES, STATES, TYPES, loadHome, type Params } from "@/lib/lots";
+import ReviewList from "@/components/ReviewList";
+import Stars from "@/components/Stars";
+import { loadReviews } from "@/lib/reviews";
 import { loadShowcase } from "@/lib/showcase";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +32,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
   const qs = new URLSearchParams(Object.entries(p).filter(([, v]) => typeof v === "string" && v) as [string, string][]).toString();
   if (qs) redirect(`/search?${qs}`);
 
-  const [{ soldRecent, marine, endingSoon, newest, counts, tilePhotos, endingToday }, showcase] = await Promise.all([loadHome(), loadShowcase(6)]);
+  const [{ soldRecent, marine, endingSoon, newest, counts, tilePhotos, endingToday }, showcase, homeReviews] = await Promise.all([loadHome(), loadShowcase(6), loadReviews({ limit: 3 })]);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
@@ -144,6 +147,21 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
             <div className="rail">{endingSoon.map((lot) => <LotCard key={lot.id} lot={lot} layout="rail" />)}</div>
           </section>
         ) : null}
+
+        <section className="home-section" aria-labelledby="reviews-h">
+          <div className="section-head">
+            <h2 id="reviews-h">What buyers say</h2>
+            <a href="/reviews">{homeReviews.count ? `All ${homeReviews.count} reviews` : "Write a review"}</a>
+          </div>
+          {homeReviews.count && homeReviews.average ? (
+            <>
+              <p className="review-summary"><Stars rating={homeReviews.average} size={20} /> <strong>{homeReviews.average.toFixed(1)}</strong> out of 5, from {homeReviews.count} review{homeReviews.count === 1 ? "" : "s"}</p>
+              <ReviewList reviews={homeReviews.reviews} showLot cards />
+            </>
+          ) : (
+            <p className="section-note">Bought something through Turrera or found a deal here? <a href="/reviews#write-review">Leave the first review</a>.</p>
+          )}
+        </section>
 
         <section className="home-section home-band" id="signup">
           <div>

@@ -22,6 +22,9 @@ export async function POST(req: Request) {
     await db.from("finance_requests").update({ status: field(fd, "status", 20) }).eq("id", id);
   } else if (action === "insp_status" && INSP.includes(field(fd, "status", 20))) {
     await db.from("inspection_requests").update({ status: field(fd, "status", 20), updated_at: now }).eq("id", id);
+  } else if (action === "review_status" && ["pending", "approved", "rejected"].includes(field(fd, "status", 20))) {
+    const status = field(fd, "status", 20);
+    await db.from("reviews").update({ status, approved_at: status === "approved" ? now : null }).eq("id", id);
   } else if (action === "approve") {
     await db.from("newsletters").update({ status: "approved", approved_at: now }).eq("id", id).eq("status", "draft");
   } else if (action === "discard") {
