@@ -15,7 +15,11 @@ try {
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 900 });
   await page.goto(`${base}/reviews`, { waitUntil: "networkidle2" });
-  await page.click('.star-input label:nth-child(2)'); // 4 stars (labels run 5..1 in the page)
+  const fourth = (await page.$$('.star-input label'))[1]; // labels run 5..1 in the page, shown 1..5
+  await fourth.click();
+  const picked = await page.$eval('.star-input input:checked', (i) => i.value).catch(() => "none");
+  check(picked === "4", `clicking the 4th star picks ${picked}`);
+  await page.screenshot({ path: "shots/stars.png", clip: { x: 700, y: 300, width: 580, height: 120 } });
   await page.type('textarea[name="body"]', "Preview check: found a boat here and the listing matched what I saw in person.");
   await page.type('input[name="name"]', "Preview C.");
   await page.type('input[name="email"]', email);

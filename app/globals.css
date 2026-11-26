@@ -858,8 +858,8 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .star-field { border: 0; padding: 0; margin: 0; min-width: 0; }
 .star-field legend { padding: 0; margin-bottom: 4px; font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .star-input { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 4px; }
-.star-input label { cursor: pointer; font-size: 30px; line-height: 1; color: #c9ccd1; margin: 0; }
-.star-input input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.star-input label { position: relative; cursor: pointer; font-size: 30px; line-height: 1; color: #c9ccd1; margin: 0; }
+.star-input input { position: absolute; left: 0; top: 0; opacity: 0; width: 1px; height: 1px; margin: 0; }
 .star-input label:hover, .star-input label:hover ~ label, .star-input input:checked ~ span, .star-input label:has(input:checked), .star-input label:has(input:checked) ~ label { color: #c98a00; }
 .star-input input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
 @media (max-width: 860px) {
