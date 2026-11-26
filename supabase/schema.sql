@@ -436,3 +436,55 @@ create table if not exists public.sms_sent (
 );
 alter table public.sms_sent enable row level security;
 grant all on public.sms_sent to service_role;
+
+-- ── Reviews ──────────────────────────────────────────────────────────────────
+-- Reviews of the site or of a lot. Nothing shows until David approves it in admin.
+-- "Verified buyer" is set by the database: the reviewer is signed in and has sent a buy-for-me
+-- or inspection request. Reviews are never edited to change what the person said.
+create table if not exists public.reviews (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid default auth.uid() references auth.users (id) on delete set null,
+  lot_id      text,
+  lot_title   text,
+  name        text not null,
+  email       text not null,
+  rating      int not null check (rating between 1 and 5),
+  body        text not null,
+  verified    boolean not null default false,
+  status      text not null default 'pending', -- pending | approved | rejected
+  notified_at timestamptz,
+  created_at  timestamptz not null default now(),
+  approved_at timestamptz
+);
+create index if not exists reviews_status_idx on public.reviews (status, created_at desc);
+create index if not exists reviews_lot_idx on public.reviews (lot_id) where lot_id is not null;
+alter table public.reviews enable row level security;
+grant all on public.reviews to service_role;
+-- Everyone can read approved reviews, but never the reviewer's email.
+grant select (id, lot_id, lot_title, name, rating, body, verified, status, created_at, approved_at) on public.reviews to anon, authenticated;
+drop policy if exists "approved reviews are public" on public.reviews;
+create policy "approved reviews are public" on public.reviews for select to anon, authenticated using (status = 'approved');
+
+create or replace function public.submit_review(p_name text, p_email text, p_rating int, p_body text, p_lot_id text)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare rid uuid; t text; v boolean := false; uid uuid := auth.uid();
+begin
+  if p_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'invalid email'; end if;
+  if p_rating is null or p_rating < 1 or p_rating > 5 then raise exception 'invalid rating'; end if;
+  if length(trim(coalesce(p_body, ''))) < 10 then raise exception 'review too short'; end if;
+  if length(trim(coalesce(p_name, ''))) < 2 then raise exception 'name required'; end if;
+  -- One review per email per subject per day keeps out floods; David still approves each one.
+  if exists (select 1 from reviews where lower(email) = lower(trim(p_email)) and coalesce(lot_id, '') = coalesce(p_lot_id, '') and created_at > now() - interval '1 day') then
+    raise exception 'already reviewed';
+  end if;
+  if p_lot_id is not null then select title into t from lots where id = p_lot_id; end if;
+  if uid is not null then
+    select exists (select 1 from buy_requests where user_id = uid) or exists (select 1 from inspection_requests where user_id = uid) into v;
+  end if;
+  insert into reviews (user_id, lot_id, lot_title, name, email, rating, body, verified)
+  values (uid, p_lot_id, t, left(trim(p_name), 60), lower(trim(p_email)), p_rating, left(trim(p_body), 2000), v)
+  returning id into rid;
+  return rid;
+end $$;
+revoke all on function public.submit_review(text, text, int, text, text) from public;
+grant execute on function public.submit_review(text, text, int, text, text) to anon, authenticated, service_role;

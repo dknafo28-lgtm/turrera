@@ -18,6 +18,7 @@ type Sell = { id: string; kind: string | null; company: string; name: string; em
 type Fin = { id: string; lot_id: string | null; lot_title: string | null; buyer_type: string | null; name: string; company: string | null; email: string; phone: string | null; state: string | null; amount: number | null; credit: string | null; years_in_business: string | null; what: string | null; contact_consent: boolean; status: string; created_at: string };
 const FIN = ["new", "sent_to_lender", "approved", "declined", "funded", "closed"];
 const INSP = ["new", "paid", "scheduled", "done", "cancelled", "refunded"];
+type Rev = { id: string; lot_id: string | null; lot_title: string | null; name: string; email: string; rating: number; body: string; verified: boolean; status: string; created_at: string };
 type Insp = { id: string; lot_id: string; lot_title: string | null; lot_url: string | null; lot_place: string | null; lot_end: string | null; name: string; email: string; phone: string | null; questions: string | null; fee: number; status: string; created_at: string };
 type News = { id: string; subject: string; html: string; social: { text: string }[] | null; status: string; created_at: string; sent_count: number | null; sent_at: string | null };
 
@@ -59,6 +60,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     db.from("saved_searches").select("id", { count: "exact", head: true }).eq("active", true),
     db.from("finance_requests").select("*").order("created_at", { ascending: false }).limit(100),
   ]);
+  const revs = await db.from("reviews").select("id,lot_id,lot_title,name,email,rating,body,verified,status,created_at").order("created_at", { ascending: false }).limit(100);
+  const revRows = (revs.error ? [] : revs.data ?? []) as Rev[];
   const insp = await db.from("inspection_requests").select("*").order("created_at", { ascending: false }).limit(100);
   const inspRows = (insp.error ? [] : insp.data ?? []) as Insp[];
   const showcase = await db.from("showcase").select("*").order("created_at", { ascending: false }).limit(100);
@@ -90,6 +93,28 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           <div><dt>Newsletter subscribers</dt><dd>{(subs.count ?? 0).toLocaleString()}</dd></div>
           <div><dt>Active search alerts</dt><dd>{(alerts.count ?? 0).toLocaleString()}</dd></div>
         </dl>
+
+        <section className="page-section" id="reviews">
+          <h2>Reviews{revRows.filter((r) => r.status === "pending").length ? ` (${revRows.filter((r) => r.status === "pending").length} waiting)` : ""}</h2>
+          {revRows.length ? (
+            <div className="table-wrap">
+              <table className="admin-table">
+                <thead><tr><th>Received</th><th>Rating</th><th>Review</th><th>From</th><th>Status</th></tr></thead>
+                <tbody>
+                  {revRows.map((r) => (
+                    <tr key={r.id}>
+                      <td>{when(r.created_at)}</td>
+                      <td className="num">{"\u2605".repeat(r.rating)}</td>
+                      <td>{r.body}{r.lot_id ? <p className="fine">About <a href={`/lot/${encodeURIComponent(r.lot_id)}`}>{r.lot_title ?? r.lot_id}</a></p> : <p className="fine">About the site</p>}</td>
+                      <td>{r.name}{r.verified ? " (verified buyer)" : ""}<br /><a href={`mailto:${r.email}`}>{r.email}</a></td>
+                      <td><StatusForm action="review_status" id={r.id} status={r.status} options={["pending", "approved", "rejected"]} anchor="reviews" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="fine">No reviews yet. They come from the Reviews page and the review box on each lot. Approve one to show it.</p>}
+        </section>
 
         <section className="page-section" id="inspect">
           <h2>Inspection requests</h2>

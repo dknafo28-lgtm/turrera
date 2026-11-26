@@ -37,6 +37,7 @@ export default function SiteHeader({ q = "", category = "" }: { q?: string; cate
               <li><a href="/sell">Sell your fleet</a></li>
               <li><a href="/watchlist">Watchlist</a></li>
               <li><a href="/account">My account</a></li>
+              <li><a href="/reviews">Reviews</a></li>
             </ul>
             <div className="catmenu-grid">
               {TAXONOMY.filter((c) => c.key !== "other").map((c) => (

@@ -11,6 +11,10 @@ import InspectForm from "@/components/InspectForm";
 import BidStart from "@/components/BidStart";
 import FinanceOptions from "@/components/FinanceOptions";
 import { canInspect } from "@/lib/inspection";
+import ReviewForm from "@/components/ReviewForm";
+import ReviewList from "@/components/ReviewList";
+import Stars from "@/components/Stars";
+import { loadReviews } from "@/lib/reviews";
 import ShareButtons from "@/components/ShareButtons";
 import { SITE_URL, WHATSAPP } from "@/lib/site";
 
@@ -60,11 +64,11 @@ function fmtDate(s: string | null | undefined) {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
 }
 
-export default async function LotPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ buy?: string; inspect?: string }> }) {
+export default async function LotPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ buy?: string; inspect?: string; review?: string }> }) {
   const lot = await getLot((await params).id);
   const sp = await searchParams;
   if (!lot) notFound();
-  const [similar, comps] = await Promise.all([similarLots(lot), soldComps(lot as Parameters<typeof soldComps>[0])]);
+  const [similar, comps, lotReviews] = await Promise.all([similarLots(lot), soldComps(lot as Parameters<typeof soldComps>[0]), loadReviews({ lotId: lot.id, limit: 20 })]);
 
   const photos = [...new Set((Array.isArray(lot.photos) && lot.photos.length ? lot.photos : [lot.photo_url]).filter(Boolean) as string[])];
   const dateOnly = isDateOnly(lot.source);
@@ -214,6 +218,15 @@ export default async function LotPage({ params, searchParams }: { params: Promis
             {isOpen && canInspect(lot.end_time) ? <InspectForm lotId={lot.id} category={lot.category} place={[lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ")} missing={sp.inspect === "missing"} /> : null}
 
             {isOpen ? <FinanceOptions compact lotId={lot.id} category={lot.category} amount={lot.current_bid && lot.current_bid > 0 ? lot.current_bid : null} /> : null}
+
+            <section className="lot-section lot-reviews" id="reviews" aria-labelledby="reviews-h">
+              <h2 id="reviews-h">Reviews of this lot{lotReviews.count && lotReviews.average ? <span className="review-inline"><Stars rating={lotReviews.average} /> {lotReviews.average.toFixed(1)} ({lotReviews.count})</span> : null}</h2>
+              {lotReviews.reviews.length ? <ReviewList reviews={lotReviews.reviews} /> : <p className="fine">No reviews yet. Bought this, inspected it or saw it in person? Tell other buyers whether the listing was accurate.</p>}
+              <details className="review-toggle" open={!!sp.review}>
+                <summary>Write a review</summary>
+                <ReviewForm lotId={lot.id} status={sp.review} heading="Review this lot" />
+              </details>
+            </section>
           </div>
 
           <aside className="bidbox" aria-label="Bidding">
