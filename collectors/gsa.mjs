@@ -26,9 +26,21 @@ export function extractRecords(json) {
   return [];
 }
 
-function toDate(value) {
+// GSA's API gives only the closing date (e.g. "2026-12-01"), no time. Read a bare date as the end of
+// that day in Eastern time, so the lot stays open all day and the site shows "Closes Dec 1", not a wrong hour.
+export function endOfDayEastern(ymd) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const guess = new Date(Date.UTC(y, m - 1, d, 23, 59, 0));
+  const tz = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", timeZoneName: "shortOffset" }).formatToParts(guess).find((p) => p.type === "timeZoneName")?.value ?? "GMT-5";
+  const offset = Number(tz.replace("GMT", "") || 0);
+  return new Date(guess.getTime() - offset * 3_600_000).toISOString();
+}
+
+function toDate(value, endOfDay = false) {
   if (!value) return null;
-  const d = new Date(value);
+  const s = String(value).trim();
+  if (endOfDay && /^\d{4}-\d{2}-\d{2}$/.test(s)) return endOfDayEastern(s);
+  const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
@@ -90,7 +102,7 @@ export function toLot(record) {
     category: categorize(title),
     current_bid: toNumber(f("highBidAmount", "currentBid", "highBid")),
     start_time: toDate(f("aucStartDt")),
-    end_time: toDate(f("aucEndDt")),
+    end_time: toDate(f("aucEndDt"), true),
     status: status(f("auctionStatus")),
     city: clean(f("propertyCity", "locationCity")),
     state: clean(f("propertyState", "locationST"))?.toUpperCase() ?? null,

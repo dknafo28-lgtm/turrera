@@ -42,8 +42,12 @@ export function titleCase(raw) {
 
 export const SOURCE_NAME = { gsa: "GSA Auctions", publicsurplus: "Public Surplus", municibid: "Municibid", jjkane: "JJ Kane", govdeals: "GovDeals", govplanet: "GovPlanet", cws: "CWS Marketing" };
 
-export function closes(end) {
+// Sources that only publish a closing date, not a time.
+const DATE_ONLY = new Set(["jjkane", "gsa"]);
+
+export function closes(end, source) {
   if (!end) return "No end date listed";
+  if (DATE_ONLY.has(source)) return new Date(end).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" });
   return new Date(end).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" });
 }
 
@@ -64,7 +68,7 @@ export function lotRowHtml(cfg, lot, blurb = "") {
 <a href="${esc(link)}" style="font-size:16px;font-weight:bold;color:#162e51;text-decoration:none">${esc(titleCase(lot.title) || "Untitled lot")}</a><br>
 <span style="color:#565c65">${esc(place || "Location not listed")}</span><br>
 <strong>${esc(bid)}</strong>${lot.current_bid > 0 ? ` <span style="color:#565c65">current bid</span>` : ""}<br>
-<span style="color:#565c65">Closes ${esc(closes(lot.end_time))}</span>
+<span style="color:#565c65">Closes ${esc(closes(lot.end_time, lot.source))}</span>
 ${blurb ? `<br><span>${esc(blurb)}</span>` : ""}
 </td></tr></table></td></tr>`;
 }

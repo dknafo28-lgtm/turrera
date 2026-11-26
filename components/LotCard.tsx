@@ -1,5 +1,5 @@
 import type { Lot } from "@/lib/supabase";
-import { money, titleCase } from "@/lib/format";
+import { money, titleCase, isDateOnly } from "@/lib/format";
 import Countdown from "./Countdown";
 import WatchButton from "./WatchButton";
 
@@ -22,7 +22,7 @@ export default function LotCard({ lot, layout = "grid" }: { lot: Lot; layout?: "
       </a>
       <div className="card-body">
         <div className="card-top">
-          {soldFor !== null ? <span className="sold-badge">Sold{ended ? ` ${ended}` : ""}</span> : <Countdown end={lot.end_time} dateOnly={lot.source === "jjkane"} />}
+          {soldFor !== null ? <span className="sold-badge">Sold{ended ? ` ${ended}` : ""}</span> : <Countdown end={lot.end_time} dateOnly={isDateOnly(lot.source)} />}
           <WatchButton id={lot.id} compact />
         </div>
         <h3 className="card-title"><a href={href}>{titleCase(lot.title) || "Untitled lot"}</a></h3>

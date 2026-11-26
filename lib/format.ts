@@ -28,6 +28,10 @@ export function timeLeft(end: string | null | undefined, now = Date.now()): Time
   return { text: `${days}d ${hours % 24}h left`, urgency: "later" };
 }
 
+// Sources that only publish a closing date, not a time.
+export const DATE_ONLY_SOURCES = new Set(["jjkane", "gsa"]);
+export const isDateOnly = (source: string | null | undefined) => DATE_ONLY_SOURCES.has(source ?? "");
+
 export function closesAt(end: string | null | undefined, dateOnly = false) {
   if (!end) return null;
   const d = new Date(end);

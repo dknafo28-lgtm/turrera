@@ -68,6 +68,8 @@ test("toLot handles the live API's camelCase fields", () => {
     lotInfo: "<p><strong>NOTE</strong> Tires need&nbsp;replacing</p>",
     locationOrg: "Arizona Federal Surplus Property",
   });
+  // Date-only closing dates mean the end of that day, Eastern time (Dec 1, 11:59 pm EST).
+  assert.equal(lot.end_time, "2026-12-02T04:59:00.000Z");
   assert.equal(lot.id, "gsa:2-1-QSC-I-27-039:001");
   assert.equal(lot.status, "active");
   assert.equal(lot.state, "NM");

@@ -405,3 +405,34 @@ drop policy if exists "own finance requests" on public.finance_requests;
 create policy "own finance requests" on public.finance_requests for select to authenticated using (user_id = auth.uid());
 drop policy if exists "own inspection requests" on public.inspection_requests;
 create policy "own inspection requests" on public.inspection_requests for select to authenticated using (user_id = auth.uid());
+
+-- ── Text alerts ──────────────────────────────────────────────────────────────
+-- Per-account settings: a phone number and how many hours before a watched lot closes to text.
+create table if not exists public.profiles (
+  user_id        uuid primary key references auth.users (id) on delete cascade,
+  phone          text,
+  sms_on         boolean not null default false,
+  sms_hours      int not null default 3 check (sms_hours between 1 and 48),
+  sms_consent_at timestamptz,
+  updated_at     timestamptz not null default now()
+);
+alter table public.profiles enable row level security;
+grant select, insert, update on public.profiles to authenticated;
+grant all on public.profiles to service_role;
+drop policy if exists "own profile read" on public.profiles;
+create policy "own profile read" on public.profiles for select to authenticated using (user_id = auth.uid());
+drop policy if exists "own profile add" on public.profiles;
+create policy "own profile add" on public.profiles for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "own profile edit" on public.profiles;
+create policy "own profile edit" on public.profiles for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- One text per person, lot and kind, so nobody gets the same alert twice.
+create table if not exists public.sms_sent (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  lot_id  text not null,
+  kind    text not null default 'closing',
+  sent_at timestamptz not null default now(),
+  primary key (user_id, lot_id, kind)
+);
+alter table public.sms_sent enable row level security;
+grant all on public.sms_sent to service_role;

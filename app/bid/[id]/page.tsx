@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import { getUser } from "@/lib/auth";
 import { BROKER_FEE_TEXT, depositFor } from "@/lib/deposit";
-import { closesAt, money, titleCase } from "@/lib/format";
+import { closesAt, money, titleCase, isDateOnly } from "@/lib/format";
 import { stripeEnabled } from "@/lib/stripe";
 import { getReadClient } from "@/lib/supabase";
 
@@ -72,7 +72,7 @@ export default async function Bid({ params, searchParams }: { params: Promise<{ 
           {lot.photo_url ? <img src={lot.photo_url} alt="" /> : null}
           <div>
             <strong>{title}</strong>
-            <span>{[place, lot.end_time ? `closes ${closesAt(lot.end_time, lot.source === "jjkane")}` : null].filter(Boolean).join(", ")}</span>
+            <span>{[place, lot.end_time ? `closes ${closesAt(lot.end_time, isDateOnly(lot.source))}` : null].filter(Boolean).join(", ")}</span>
             <span>{current ? `Current bid ${money(current)}` : "No bids yet"}</span>
           </div>
         </a>

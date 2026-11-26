@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getReadClient, type Lot } from "@/lib/supabase";
 import { CATEGORIES, SOURCE_SHORT, similarLots, soldComps, typeLabel } from "@/lib/lots";
-import { closesAt, money, titleCase } from "@/lib/format";
+import { closesAt, money, titleCase, isDateOnly } from "@/lib/format";
 import SiteHeader from "@/components/SiteHeader";
 import LotCard from "@/components/LotCard";
 import Countdown from "@/components/Countdown";
@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const place = [lot.city ? titleCase(lot.city) : null, lot.state].filter(Boolean).join(", ");
   const sold = lot.sold && lot.final_price;
   const open = lot.end_time && new Date(lot.end_time).getTime() > Date.now();
-  const status = sold ? `Sold for ${money(lot.final_price)}.` : open ? `${money(lot.current_bid) ? `Current bid ${money(lot.current_bid)}.` : "No bids yet."} Closes ${closesAt(lot.end_time, lot.source === "jjkane")}.` : "Auction closed.";
+  const status = sold ? `Sold for ${money(lot.final_price)}.` : open ? `${money(lot.current_bid) ? `Current bid ${money(lot.current_bid)}.` : "No bids yet."} Closes ${closesAt(lot.end_time, isDateOnly(lot.source))}.` : "Auction closed.";
   const description = `${title}${place ? ` in ${place}` : ""}. ${status} Government surplus, direct from the agency. We can inspect, buy and ship it for you.`;
   const photos = [...new Set((Array.isArray(lot.photos) && lot.photos.length ? lot.photos : [lot.photo_url]).filter(Boolean) as string[])].slice(0, 4);
   const url = `/lot/${encodeURIComponent(lot.id)}`;
@@ -67,7 +67,7 @@ export default async function LotPage({ params, searchParams }: { params: Promis
   const [similar, comps] = await Promise.all([similarLots(lot), soldComps(lot as Parameters<typeof soldComps>[0])]);
 
   const photos = [...new Set((Array.isArray(lot.photos) && lot.photos.length ? lot.photos : [lot.photo_url]).filter(Boolean) as string[])];
-  const dateOnly = lot.source === "jjkane";
+  const dateOnly = isDateOnly(lot.source);
   const site = SOURCE_SHORT[lot.source] ?? lot.source;
   const title = titleCase(lot.title) || "Untitled lot";
   const cat = CATEGORIES.find((c) => c.key === lot.category);

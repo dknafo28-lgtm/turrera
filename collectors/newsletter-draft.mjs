@@ -24,7 +24,7 @@ async function pick(db) {
 function lotFacts(l) {
   return {
     id: l.id, title: titleCase(l.title), place: [l.city, l.state].filter(Boolean).join(", "),
-    current_bid: l.current_bid, closes: closes(l.end_time), condition: (l.condition || "").slice(0, 300),
+    current_bid: l.current_bid, closes: closes(l.end_time, l.source), condition: (l.condition || "").slice(0, 300),
   };
 }
 
@@ -34,7 +34,7 @@ async function write(sections) {
     subject: `Government auctions this week: ${titleCase(sections[0].lots[0].title)} and more`,
     intro: `${sections.reduce((n, s) => n + s.lots.length, 0)} standout government auctions closing this week, day by day. Bids were current when this was sent.`,
     blurbs: {},
-    social: sections.flatMap((s) => s.lots).slice(0, 5).map((l) => ({ lot_id: l.id, text: `${titleCase(l.title)}, ${[l.city, l.state].filter(Boolean).join(", ")}. ${l.current_bid > 0 ? `Current bid ${money(l.current_bid)}` : "Open for bids"}. Closes ${closes(l.end_time)}.` })),
+    social: sections.flatMap((s) => s.lots).slice(0, 5).map((l) => ({ lot_id: l.id, text: `${titleCase(l.title)}, ${[l.city, l.state].filter(Boolean).join(", ")}. ${l.current_bid > 0 ? `Current bid ${money(l.current_bid)}` : "Open for bids"}. Closes ${closes(l.end_time, l.source)}.` })),
   };
   if (!key) return fallback;
   const lots = sections.flatMap((s) => s.lots.map(lotFacts));

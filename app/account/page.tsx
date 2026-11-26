@@ -30,19 +30,21 @@ function alertText(a: Alert) {
   return bits.filter(Boolean).join(" ") || "All new lots";
 }
 
-export default async function Account({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
+export default async function Account({ searchParams }: { searchParams: Promise<{ saved?: string; sms?: string }> }) {
   const q = await searchParams;
   const me = await getUser();
   if (!me) redirect("/signin?next=/account");
   const { db, user } = me;
 
-  const [watch, alerts, buys, insp, fins] = await Promise.all([
+  const [watch, alerts, buys, insp, fins, prof] = await Promise.all([
     db.from("watchlist_items").select("lot_id").order("created_at", { ascending: false }).limit(300),
     db.from("saved_searches").select("id,label,params,active,created_at").order("created_at", { ascending: false }),
     db.from("buy_requests").select("id,lot_id,lot_title,max_bid,status,created_at").order("created_at", { ascending: false }).limit(50),
     db.from("inspection_requests").select("id,lot_id,lot_title,lot_place,status,created_at").order("created_at", { ascending: false }).limit(50),
     db.from("finance_requests").select("id,lot_id,lot_title,amount,status,created_at").order("created_at", { ascending: false }).limit(50),
+    db.from("profiles").select("phone,sms_on,sms_hours").maybeSingle(),
   ]);
+  const profile = (prof.data ?? { phone: null, sms_on: false, sms_hours: 3 }) as { phone: string | null; sms_on: boolean; sms_hours: number };
 
   const ids = (watch.data ?? []).map((r) => r.lot_id as string);
   let lots: Lot[] = [];
@@ -98,6 +100,29 @@ export default async function Account({ searchParams }: { searchParams: Promise<
               <div className="lot-grid lot-grid-wide">{ended.map((l) => <LotCard key={l.id} lot={l} />)}</div>
             </details>
           ) : null}
+        </section>
+
+        <section className="page-section" id="texts" aria-labelledby="texts-h">
+          <h2 id="texts-h">Text alerts</h2>
+          <p className="fine">Get a text before lots on your watchlist close, so you never miss the end of an auction.</p>
+          {q.sms === "on" ? <p className="form-note" role="status">Text alerts are on.</p> : null}
+          {q.sms === "off" ? <p className="form-note" role="status">Text alerts are off.</p> : null}
+          {q.sms === "phone" ? <p className="form-error" role="alert">Enter a mobile number, like (305) 555-0123, or +1 242 555 0123 outside the US.</p> : null}
+          {q.sms === "failed" ? <p className="form-error" role="alert">That didn&apos;t save. Please try again.</p> : null}
+          <form action="/api/account/sms" method="post" className="form-grid sms-form">
+            <label>Mobile number<input name="phone" type="tel" autoComplete="tel" defaultValue={profile.phone ?? ""} placeholder="(305) 555-0123" /></label>
+            <label>When to text me
+              <select name="sms_hours" defaultValue={String(profile.sms_hours ?? 3)}>
+                <option value="1">1 hour before it closes</option>
+                <option value="3">3 hours before</option>
+                <option value="6">6 hours before</option>
+                <option value="12">12 hours before</option>
+                <option value="24">1 day before</option>
+              </select>
+            </label>
+            <label className="check span-2"><input type="checkbox" name="sms_on" value="yes" defaultChecked={profile.sms_on} /> <span>Text me when lots on my watchlist are about to close. About 1 text per lot, never between 10 pm and 8 am Eastern unless a lot closes overnight. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help.</span></label>
+            <div className="span-2"><button type="submit" className="btn btn-primary">Save text alerts</button></div>
+          </form>
         </section>
 
         <section className="page-section" id="requests" aria-labelledby="req-h">
